@@ -1,0 +1,6 @@
+build/*.class
+target/
+.idea/
+*.iml
+*.hex
+*.asm

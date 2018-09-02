@@ -1,0 +1,162 @@
+###############################################################################
+# ZEPPP FIRMWARE SERIAL COMMANDS REFERENCE
+###############################################################################
+
+The ZEPPP firmware uses serial communication to perform the different
+operations on the connected PIC. Each serial command is 3-letters long.
+
+The baud rate to communicate with the ZEPPP interface is 115200.
+
+NOTE!! ------------------------------------------------------------------------
+    All data expected and returned by the commands is in base
+    16 (HEX)!
+-------------------------------------------------------------------------------
+
+
+###############################################################################
+COMMANDS
+###############################################################################
+-------------------------------
+FWI
+-------------------------------
+Desc:      Provides firmware version information.
+Arguments: <None>
+Example:   FWI
+Notes:
+
+-------------------------------
+LVP
+-------------------------------
+Desc:      Enters LVP Mode.
+Arguments: <None>
+Example:   LVP
+Notes:
+ Enters LVP mode by toggling the PGM and MCLR pins.
+
+
+-------------------------------
+EXT
+-------------------------------
+Desc:      Exits LVP Mode and resets the PIC.
+Arguments: <None>
+Example:   EXT
+Notes:
+ 
+
+-------------------------------
+CHE
+-------------------------------
+Desc:      CHIP Erase
+Arguments: <None>
+Example:   CHE
+Notes:
+ This command is not supported by all microcontrollers.
+ If you want to erase all areas in a PIC device that does not support
+ this command you'll need to erase them one by one.
+ 
+
+-------------------------------
+SCM
+-------------------------------
+Desc:      Select CONFIG Memory.
+Arguments: <None>
+Example:   SCM
+Notes:
+ Reading and writing to CONFIG memory is accomplished using the same
+ read/write commands that are used for PROGRAM memory, the only difference
+ is that you need to "switch" to config memory first using this command.
+
+
+-------------------------------
+PMR
+-------------------------------
+Desc:      PROGRAM Memory Read
+Arguments: [Words to Read]
+Example:   PMR 1F
+Notes:
+Reads a number of words from PROGRAM (or CONFIG) memory.
+
+
+-------------------------------
+PMW
+-------------------------------
+Desc:      PROGRAM Memory Write
+Arguments: [PgmErase Mode: 0-1] [List of Words to Write]
+Example:   PMW 0 1F2B A032 023 3FF 1C00
+Notes:
+  This command performs a series of "single-word" writes. The maximum number
+  of words to write in a single call to this command is 32.
+
+  Depending on the PIC device you may need to use either:
+    PgmErase Mode 0: Use the 'Erase / Program' command.
+    PgmErase Mode 1: Use the 'Program Only' and 'End Programming' sequence.
+
+-------------------------------
+PMB
+-------------------------------
+Desc:      PROGRAM Memory Block Write
+Arguments: [Block Size] [List of Words to Write]
+Example:   PMB 4 0001 0002 0003 0004
+Notes:
+  Not all PIC devices support Block Writes.
+  The maximum number of words that can be written with this command in a
+  single call is 32.
+
+
+-------------------------------
+PME
+-------------------------------
+Desc:      PROGRAM Memory Erase
+Arguments: [Erase Mode: 0-1]
+Example:   PME 0
+Notes:
+ Depending on the PIC device you may need to use either:
+   Mode 0: Send a standalone 'Bulk Erase' command.
+   Mode 1: Send a 'Bulk Erase' followed by 'Begin Erase'
+
+
+-------------------------------
+DMR
+-------------------------------
+Desc:      DATA (EEPROM) Memory Read
+Arguments: [Words to Read]
+Example:   DMR 10
+Notes:
+
+
+-------------------------------
+DMW
+-------------------------------
+Desc:      DATA (EEPROM) Memory Write
+Arguments: [PgmErase Mode: 0-1] [List of Words to Write]
+Example:
+Notes:
+  This command performs a series of "single-word" writes. The maximum number
+  of words to write in a single call to this command is 32.
+
+  Depending on the PIC device you may need to use either:
+    PgmErase Mode 0: Use the 'Erase / Program' command.
+    PgmErase Mode 1: Use the 'Begin Erase', 'Program Only', 'End Programming' sequence.
+
+
+-------------------------------
+DME
+-------------------------------
+Desc:      DATA (EEPROM) Memory Erase
+Arguments: [Erase Mode: 0-1]
+Example:   DME 1
+Notes:
+ Depending on the PIC device you may need to use either:
+   Mode 0: Send a standalone 'Bulk Erase' command.
+   Mode 1: Send a 'Bulk Erase' followed by 'Begin Erase'
+
+
+-------------------------------
+IAD
+-------------------------------
+Desc:      Increment Address
+Arguments: [Offset]
+Example:   IAD 0A
+Notes:
+ Skips a number of words without reading or writing.
+ 
