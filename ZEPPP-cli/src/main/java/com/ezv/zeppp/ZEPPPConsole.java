@@ -14,6 +14,7 @@ import com.ezv.zeppp.config.PICDeviceConfigEntry;
 import com.ezv.zeppp.intelhex.IntelHexParsingException;
 import com.ezv.zeppp.pic.PicDevice;
 
+import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 
 import static com.ezv.zeppp.ZEPPPCLICommand.CLICommandCode.*;
@@ -161,8 +162,11 @@ public class ZEPPPConsole {
         } catch (IntelHexParsingException ihpe) {
             critical (ihpe.getMessage());
 
+        } catch (NoSuchFileException nsfe) {
+            critical (String.format("'%s' does not exist or could not be read", nsfe.getFile()));
+
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
             critical(e.toString());
         }
         closeInterface();
