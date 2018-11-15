@@ -28,8 +28,9 @@ Since this is a ICSP programmer you need to connect your Arduino (with the ZEPPP
 Unless you are targetting a PIC board with an already mounted ICSP header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal.
 
 For example, to program a PIC 16F628A with the current firmware, the following pins should be connected:
+
 | Arduino | ICSP Signal | PIC 16F628A  |
-|---------|-------------|--------------|
+| ------- | ----------- | ------------ |
 | D9      | PGM         | RB4 (Pin 10) |
 | D8      | PGC         | RB6 (Pin 12) |
 | D7      | PGD         | RB7 (Pin 13) |
