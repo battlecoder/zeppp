@@ -62,7 +62,7 @@ You can run the CLI without parameters to see the available options, but here ar
 
 This tells the CLI that the Arduino with the ZEPPP firmware is on COM3, then loads blink.hex, autodetects the connected PIC (this is implicit), and proceeds to "program" all the contents of the hex file on the detected PIC (-p is a shortcut for "Erase and Program All", since it's the most common operation).
 
-> zeppp-cli -c COM3 -w 2000 -i blink.hex -p
+> zeppp-cli -c COM3 -wait 2000 -i blink.hex -p
 
 Same as before but we are using an Arduino that resets itself when a serial connection is established (most Arduino variants do, apparently, the only one i've not seen doing this is Arduino Nano), so we need to wait 2 seconds (2000 ms) before trying to send any command.
 
@@ -74,7 +74,7 @@ Again, ZEPPP interface is assumed to be at COM3, the CLI autodetects the connect
 
 ZEPPP at COM3, The CLI will autodetect the connected PIC device and will read the contents from an hex file (that we presumably burned into the PIC beforehand). Then it will read and verify all the memory areas from the physical PIC, checking that they match the contents of the HEX file (-va = Verify All).
 
-> zeppp-cli -c COM3 -w 2000 -d 16f628a -i file_with_only_eeprom_data.hex -pe
+> zeppp-cli -c COM3 -wait 2000 -d 16f628a -i file_with_only_eeprom_data.hex -pe
 
 A more complicated example: ZEPPP firmware is in COM3 and we need to wait the 2 seconds before sending commands because we are using an Arduino Pro mini that resets when you connect to it. After the pause, we tell the CLI that we expect a 16F628A (this will check the connected PIC and will refuse to continue if a different PIC is found), and then we read an hex file that only contains eeprom data, which we will proceed to program into the PIC without touching other memory areas (-pe = Program EEPROM only).
 
