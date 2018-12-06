@@ -37,6 +37,15 @@ For example, to program a PIC 16F628A with the current firmware, the following p
 | D6      | MCLR        | RA5 (Pin 4)  |
 | GND     | Ground      | Vss (Pin 5)  |
 
+Not all PIC are equal, to program a PIC 16F88 with the current firmware, the following pins should be connected:
+
+| Arduino | ICSP Signal | PIC 16F88    |
+| ------- | ----------- | ------------ |
+| D9      | PGM         | RB4 (Pin 9)  |
+| D8      | PGC         | RB6 (Pin 12) |
+| D7      | PGD         | RB7 (Pin 13) |
+| D6      | MCLR        | RA5 (Pin 4)  |
+| GND     | Ground      | Vss (Pin 5)  |
 
 
 ## COMMAND-LINE UTILITY
