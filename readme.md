@@ -25,28 +25,17 @@ Strictly speaking you can use the Arduino on its own to program your PICs withou
 ## CONNECTING A PIC
 Since this is a ICSP programmer you need to connect your Arduino (with the ZEPPP firmware) to your PIC using the ICSP pins (PGM, PGC, PGD, MCLR). On the Arduino side, those signals are mapped to digital pins 6 to 9. The exact mapping can be found at the top of the ZEPPP sketch in a section called "Pin assignment". You'll also need to connect the GND pin of your PIC to your Arduino's GND.
 
-Unless you are targetting a PIC board with an already mounted ICSP header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal.
+Unless you are targetting a PIC board with an already mounted ICSP header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal. The following table shows the pins that should be connected depending on the target device family, with the current version of the firmware:
 
-For example, to program a PIC 16F628A with the current firmware, the following pins should be connected:
+| Arduino | ICSP Signal | PIC 16F6xxA  | PIC 16F87/88 | PIC 16F87xA  |
+| ------- | ----------- | ------------ | ------------ | ------------ |
+| D9      | PGM         | RB4 (Pin 10) | RB3 (Pin 9)  | RB3 (Pin 36) |
+| D8      | PGC         | RB6 (Pin 12) | RB6 (Pin 12) | RB6 (Pin 39) |
+| D7      | PGD         | RB7 (Pin 13) | RB7 (Pin 13) | RB7 (Pin 40) |
+| D6      | MCLR        | RA5 (Pin 4)  | RA5 (Pin 4)  | MCLR (Pin 1) |
+| GND     | Ground      | Vss (Pin 5)  | Vss (Pin 5)  | Vss (10, 31) |
 
-| Arduino | ICSP Signal | PIC 16F628A  |
-| ------- | ----------- | ------------ |
-| D9      | PGM         | RB4 (Pin 10) |
-| D8      | PGC         | RB6 (Pin 12) |
-| D7      | PGD         | RB7 (Pin 13) |
-| D6      | MCLR        | RA5 (Pin 4)  |
-| GND     | Ground      | Vss (Pin 5)  |
-
-Not all PIC are equal, to program a PIC 16F88 with the current firmware, the following pins should be connected:
-
-| Arduino | ICSP Signal | PIC 16F88    |
-| ------- | ----------- | ------------ |
-| D9      | PGM         | RB4 (Pin 9)  |
-| D8      | PGC         | RB6 (Pin 12) |
-| D7      | PGD         | RB7 (Pin 13) |
-| D6      | MCLR        | RA5 (Pin 4)  |
-| GND     | Ground      | Vss (Pin 5)  |
-
+As briefly mentioned before, if your target board has a proper ICSP connector you would need connect the Arduino pins to the corresponding signals on the ICSP header, but bear in mind that if the board does not support Low-Voltage Programming (LVP) it will most likely lack the "PGM" signal, and you won't be able to use this programmer.
 
 ## COMMAND-LINE UTILITY
 The Command Line Interface (CLI) for this project was written in Java so it **should** work on Linux, Windows, OSX, and Raspberry Pi boards, although I've only tested it on Windows. Of course this means you'll need to [download and install Java](https://www.java.com/en/download/help/download_options.xml) on your machine first.
