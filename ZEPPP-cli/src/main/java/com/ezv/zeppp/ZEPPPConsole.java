@@ -21,7 +21,7 @@ import static com.ezv.zeppp.ZEPPPCLICommand.CLICommandCode.*;
 
 public class ZEPPPConsole {
     public static final String ZEPPP_CLI_APP_NAME = "zeppp-cli";
-    public static final String ZEPPP_CLI_VERSION = "1.0.1";
+    public static final String ZEPPP_CLI_VERSION = "1.0.2";
 
     private static AppConfig programConfig = new AppConfig();
     private static ZEPPPClient zepppBridge = null;
@@ -96,7 +96,7 @@ public class ZEPPPConsole {
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_VERIFY_EEPROM, "ve", "verify-eeprom", null,
                 "Reads EEPROM Data from connected PIC device, and checks if it matches the PIC memory buffer."));
 
-        commandList.add(new ZEPPPCLICommand(CLI_COMMAND_VERIFY_ALL, "ve", "verify-eeprom", null,
+        commandList.add(new ZEPPPCLICommand(CLI_COMMAND_VERIFY_ALL, "va", "verify-all", null,
                 "Reads all memory areas from the connected PIC device, and checks if they match the PIC memory buffer."));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_ERASE_PGM_MEM, "ep", "erase-pgm-mem", null,
