@@ -13,8 +13,8 @@ public class HexBufferTest {
         buffer.setWord(101, (short) 0xf0c4);
 
         Assert.assertEquals("Reading single byte", 0xf0, buffer.getByte(100));
-        Assert.assertEquals("Reading MSB of a 16-bit word", 0xf0, buffer.getByte(101));
-        Assert.assertEquals("Reading LSB of a 16-bit word", 0xc4, buffer.getByte(102));
+        Assert.assertEquals("Reading MSB of a 16-bit word", 0xc4, buffer.getByte(101));
+        Assert.assertEquals("Reading LSB of a 16-bit word", 0xf0, buffer.getByte(102));
         Assert.assertEquals("Reading complete 16-bit word", 0xf0c4, buffer.getWord(101));
     }
 
