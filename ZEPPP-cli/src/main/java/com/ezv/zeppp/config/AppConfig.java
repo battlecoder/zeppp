@@ -72,6 +72,20 @@ public class AppConfig {
 
     private void add16F87xDevices () {
         addSupportedPIC (
+                new PICDeviceConfigEntry("16f873")
+                        .withDataSize(128)
+                        .withPgmMemSize(4096)
+                        .withDeviceId(0b001001011)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)1)
+                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteSize((byte)8)
+        );
+
+        addSupportedPIC (
                 new PICDeviceConfigEntry("16f873a")
                         .withDataSize(128)
                         .withPgmMemSize(4096)
@@ -80,6 +94,20 @@ public class AppConfig {
                         .withConfWords(1)
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(4)
+                        .withChipErase((byte)1)
+                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteSize((byte)8)
+        );
+
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f874")
+                        .withDataSize(128)
+                        .withPgmMemSize(4096)
+                        .withDeviceId(0b001001001)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
                         .withChipErase((byte)1)
                         .withPgmEraseMode((byte)0)
                         .withPgmWriteSize((byte)8)
@@ -100,6 +128,20 @@ public class AppConfig {
         );
 
         addSupportedPIC (
+                new PICDeviceConfigEntry("16f876")
+                        .withDataSize(256)
+                        .withPgmMemSize(8192)
+                        .withDeviceId(0b001001111)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)1)
+                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteSize((byte)8)
+        );
+
+        addSupportedPIC (
                 new PICDeviceConfigEntry("16f876a")
                         .withDataSize(256)
                         .withPgmMemSize(8192)
@@ -108,6 +150,20 @@ public class AppConfig {
                         .withConfWords(1)
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(4)
+                        .withChipErase((byte)1)
+                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteSize((byte)8)
+        );
+
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f877")
+                        .withDataSize(256)
+                        .withPgmMemSize(8192)
+                        .withDeviceId(0b001001101)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
                         .withChipErase((byte)1)
                         .withPgmEraseMode((byte)0)
                         .withPgmWriteSize((byte)8)

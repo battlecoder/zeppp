@@ -1,6 +1,6 @@
 # ZEPPP : Zero External Parts PIC Programmer
 
-**ZEPPP** is a PIC programmer that requires only an Arduino-compatible board and a small command-line PC utility to read, write, erase and verify several LVP-capable PIC microcontrollers via ICSP (In-Circuit Serial Programming).
+**ZEPPP** is a PIC programmer that requires only an Arduino-compatible board and a small command-line PC utility (CLI) to read, write, erase and verify several LVP-capable PIC microcontrollers via ICSP (In-Circuit Serial Programming).
 
 The name of this project is a homage to the first PIC programmer I used: **James Padfield**'s "Enhanced NOPPP", a modified version of the classic **NOPPP** (No-Parts PIC Programmer) originally designed by **Michael Covington**. I built mine in the early 2000's and was the tool I used to program PICs for quite a while.
 
@@ -8,6 +8,7 @@ Currently ZEPPP supports the following PIC devices:
 * 16F87, 16F88
 * 16F627A, 16F628A, 16F648A
 * 16F873A, 16F874A, 16F876A, 16F877A.
+* 16F873, 16F874, 16F876, 16F877 (Untested)
 
 And can work with all the memory areas from the supported PICs (Program memory, EEPROM, Config words and User IDs).
 
@@ -18,7 +19,7 @@ Check **LICENSE.txt** for details.
 ## FIRMWARE
 The firmware should work on **Arduino Nano**, **Pro Mini**, and **Uno** boards, including compatible designs using the **Atmega328P** processor.
 
-You'll find the Arduino sketch in the **ZEPPP** folder.
+You'll find the Arduino Sketch (*ZEPPP.ino*) in the **/ZEPPP** folder of this repository.
 
 Strictly speaking you can use the Arduino on its own to program your PICs without the command line utility, provided you don't mind sending the programming commands one by one by hand through a serial terminal (quite unpractical but can be done). A short document describing the serial commands implemented on the firmware can be found in **fw_commands.txt**.
 
@@ -27,7 +28,7 @@ Since this is a ICSP programmer you need to connect your Arduino (with the ZEPPP
 
 Unless you are targetting a PIC board with an already mounted ICSP header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal. The following table shows the pins that should be connected depending on the target device family, with the current version of the firmware:
 
-| Arduino | ICSP Signal | PIC 16F6xxA  | PIC 16F87/88 | PIC 16F87xA  |
+| Arduino | ICSP Signal | PIC 16F6xxA  | PIC 16F87/88 | PIC 16F87x(A)|
 | ------- | ----------- | ------------ | ------------ | ------------ |
 | D9      | PGM         | RB4 (Pin 10) | RB3 (Pin 9)  | RB3 (Pin 36) |
 | D8      | PGC         | RB6 (Pin 12) | RB6 (Pin 12) | RB6 (Pin 39) |
@@ -54,27 +55,50 @@ Nothing too exciting. It basically does the "java -jar zeppp-cli.jar" part for y
 
 
 ## USING THE CLI
+
 You can run the CLI without parameters to see the available options, but here are some examples of what you can do with it:
 
+**Example 1**
 > zeppp-cli -c COM3 -i blink.hex -p
 
 This tells the CLI that the Arduino with the ZEPPP firmware is on COM3, then loads blink.hex, autodetects the connected PIC (this is implicit), and proceeds to "program" all the contents of the hex file on the detected PIC (-p is a shortcut for "Erase and Program All", since it's the most common operation).
 
+**Example 2**
 > zeppp-cli -c COM3 -wait 2000 -i blink.hex -p
 
-Same as before but we are using an Arduino that resets itself when a serial connection is established (most Arduino variants do, apparently, the only one i've not seen doing this is Arduino Nano), so we need to wait 2 seconds (2000 ms) before trying to send any command.
+Same as before but we are using an Arduino that resets itself when a serial connection is established, so we need to wait 2 seconds (2000 ms) before trying to send any command.
 
+---
+> **_NOTE:_**  Most Arduino variants equipped with a USB-Serial driver for programming (Arduino Uno, Nano, etc) need the **-wait** parameter with at least a delay of 2 seconds after the COM port is selected. This is because they automatically reset the microcontroller when a connection is eastablished to talk to the bootloader. The [Arduino Pro Mini](https://www.arduino.cc/en/pmwiki.php?n=Main/ArduinoBoardProMini) (The one without on-board USB Serial IC, that needs to be manually reset via push-button when programmed) is the only Arduino I've tested so far that doesn't need this, because it doesn't auto-resets on serial connections.
+---
+
+**Example 3**
 > zeppp-cli -c COM3 -ra -o full_pic_dump.hex
 
 Again, ZEPPP interface is assumed to be at COM3, the CLI autodetects the connected PIC, and proceeds to "read" the contents of all memory areas (-ra = Read All), saving all the read data to an HEX file.
 
+**Example 4**
 > zeppp-cli -c COM3 -i program_already_burned_in_the_pic.hex -va
 
 ZEPPP at COM3, The CLI will autodetect the connected PIC device and will read the contents from an hex file (that we presumably burned into the PIC beforehand). Then it will read and verify all the memory areas from the physical PIC, checking that they match the contents of the HEX file (-va = Verify All).
 
+**Example 5**
 > zeppp-cli -c COM3 -wait 2000 -d 16f628a -i file_with_only_eeprom_data.hex -pe
 
 A more complicated example: ZEPPP firmware is in COM3 and we need to wait the 2 seconds before sending commands because we are using an Arduino Pro mini that resets when you connect to it. After the pause, we tell the CLI that we expect a 16F628A (this will check the connected PIC and will refuse to continue if a different PIC is found), and then we read an hex file that only contains eeprom data, which we will proceed to program into the PIC without touching other memory areas (-pe = Program EEPROM only).
+
+
+## BUILDING THE CLI FROM SOURCE CODE
+You can skip this step if you use the [pre-compiled JAR](https://github.com/battlecoder/zeppp/blob/master/zeppp-cli.jar), which should work out of the box in most systems.
+
+If you want to build the tool yourself from the source code, you'll need [Apache Maven](https://maven.apache.org/) and the [Java JDK version 8 or better](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html).
+Once you have both working in your enviroment, building the CLI program only requires you to run:
+
+    > cd ZEPPP-cli
+    > mvn clean package
+
+The JAR will be copied to the root directory of the project automatically once it's built.
+
 
 
 ## CLOSING WORDS
