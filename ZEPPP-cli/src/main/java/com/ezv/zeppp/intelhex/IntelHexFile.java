@@ -28,7 +28,9 @@ public class IntelHexFile {
         int addressL;
         Path filePath = Paths.get(intelHexFilePath);
 
-        if (Files.exists(filePath)) throw new IntelHexParsingException(String.format("File '%s' already exists", intelHexFilePath));
+        if (Files.exists(filePath)) {
+            throw new IntelHexParsingException(String.format("File '%s' already exists", intelHexFilePath));
+        }
 
         try (BufferedWriter writer = Files.newBufferedWriter(filePath, Charset.forName("UTF-8"))){
             int currentAddressH = 0;

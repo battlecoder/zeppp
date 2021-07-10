@@ -21,12 +21,12 @@ import static com.ezv.zeppp.ZEPPPCLICommand.CLICommandCode.*;
 
 public class ZEPPPConsole {
     public static final String ZEPPP_CLI_APP_NAME = "zeppp-cli";
-    public static final String ZEPPP_CLI_VERSION = "1.0.2";
+    public static final String ZEPPP_CLI_VERSION = "1.0.3";
 
     private static AppConfig programConfig = new AppConfig();
     private static ZEPPPClient zepppBridge = null;
     private static PicDevice picDevice = null;
-
+    private static boolean ignoreOutOfBounds = false;
     private static ArrayList<ZEPPPCLICommand> commandList;
     private static boolean initialized = false;
 
@@ -47,6 +47,9 @@ public class ZEPPPConsole {
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_DEVICE, "d", "device", "<pic device>",
                 "Selects the PIC device. Must be set before most other operations. If not specified\n\t"+
                            "the interface will attempt to auto-detect the connected PIC Device."));
+
+        commandList.add(new ZEPPPCLICommand(CLI_COMMAND_IGNORE_OOB_ERROR,null, "ignore-oob-error", null,
+                "Attempts to write to out of bound areas result in just a warning, and do not stop\n\texecution."));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_INPUT,"i", "input", "<filename>",
                  "Reads an Intel HEX file into the PIC memory buffer."));
@@ -75,7 +78,7 @@ public class ZEPPPConsole {
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_WRITE_CONF_WORDS,"wc", "write-conf-words", null,
                 "Writes CONFIG Words from the PIC memory buffer to the connected PIC device."));
 
-            commandList.add(new ZEPPPCLICommand(CLI_COMMAND_WRITE_USER_IDS,"wi", "write-user-ids", null,
+        commandList.add(new ZEPPPCLICommand(CLI_COMMAND_WRITE_USER_IDS,"wi", "write-user-ids", null,
                 "Writes User-defined IDs from the PIC memory buffer to the connected PIC device."));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_WRITE_EEPROM,"we", "write-eeprom", null,
@@ -206,16 +209,20 @@ public class ZEPPPConsole {
                 zepppBridge = new ZEPPPClient(trimValue);
                 return false;
 
+            case CLI_COMMAND_IGNORE_OOB_ERROR:
+                ignoreOutOfBounds = true;
+                return false;
+
             case CLI_COMMAND_INPUT:
                 requirePICDevice();
                 ZEPPPConsole.msg("Reading input Hex file: " + trimValue);
-                picDevice.loadFromHexFile(trimValue);
+                IntelHexPicHelper.loadFromHexFile(picDevice, trimValue, ignoreOutOfBounds);
                 return false;
 
             case CLI_COMMAND_OUTPUT:
                 requirePICDevice();
                 ZEPPPConsole.msg("Saving buffers to Hex file: " + trimValue);
-                picDevice.saveToHexFile(trimValue);
+                IntelHexPicHelper.saveToHexFile(picDevice, trimValue);
                 return false;
 
             case CLI_COMMAND_DEVICE:

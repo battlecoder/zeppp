@@ -438,7 +438,7 @@ public class ZEPPPClient {
         if (writeSize < 2) {
             return sendPgmCmndWithByteAndBuffer (ZEPPP.ZEPPP_CMD_PGM_MEM_WRITE, eraseMode, wordBuffer, startWordNdx, numberOfWords);
         } else {
-            // Devices that support block write normally has eraseMode = 1
+            // Devices that support block write normally have eraseMode = 1
             return sendPgmCmndWithByteAndBuffer (ZEPPP.ZEPPP_CMD_PGM_MEM_BLOCKWRITE, writeSize, wordBuffer, startWordNdx, numberOfWords);
         }
     }

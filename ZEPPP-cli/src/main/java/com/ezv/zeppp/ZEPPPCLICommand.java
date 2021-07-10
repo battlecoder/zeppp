@@ -1,8 +1,18 @@
 package com.ezv.zeppp;
 
+// ################################################################################################################
+// ## ZEPPPCLICommand                                                                                            ##
+// ##                                                                                                            ##
+// ## Abstraction of ZEPPP CLI Commands.                                                                         ##
+// ## Part of the ZEPPP: Zero External Parts PIC Programmer project.                                             ##
+// ##                                                                                                            ##
+// ## Author: Elias Zacarias                                                                                     ##
+// ##                                                                                                            ##
+// ################################################################################################################
 public class ZEPPPCLICommand {
     public enum CLICommandCode{
         CLI_COMMAND_COMM,
+        CLI_COMMAND_IGNORE_OOB_ERROR,
         CLI_COMMAND_INPUT,
         CLI_COMMAND_OUTPUT,
         CLI_COMMAND_DEVICE,
