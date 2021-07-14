@@ -38,7 +38,8 @@ public class AppConfig {
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
                         .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
                         .withPgmWriteSize((byte)1)
         );
 
@@ -52,7 +53,8 @@ public class AppConfig {
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
                         .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
                         .withPgmWriteSize((byte)1)
         );
 
@@ -66,7 +68,8 @@ public class AppConfig {
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
                         .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
                         .withPgmWriteSize((byte)1)
         );
     }
@@ -81,8 +84,9 @@ public class AppConfig {
                         .withConfWords(1)
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
-                        .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withChipErase((byte)2)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)2)
                         .withPgmWriteSize((byte)1)
         );
 
@@ -95,8 +99,9 @@ public class AppConfig {
                         .withConfWords(1)
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
-                        .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withChipErase((byte)2)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)2)
                         .withPgmWriteSize((byte)1)
         );
 
@@ -109,8 +114,9 @@ public class AppConfig {
                         .withConfWords(1)
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
-                        .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withChipErase((byte)2)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)2)
                         .withPgmWriteSize((byte)1)
         );
 
@@ -123,8 +129,9 @@ public class AppConfig {
                         .withConfWords(1)
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
-                        .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withChipErase((byte)2)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)2)
                         .withPgmWriteSize((byte)1)
         );
 
@@ -137,8 +144,9 @@ public class AppConfig {
                         .withConfWords(1)
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
-                        .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withChipErase((byte)2)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)2)
                         .withPgmWriteSize((byte)1)
         );
 
@@ -151,8 +159,9 @@ public class AppConfig {
                         .withConfWords(1)
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
-                        .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withChipErase((byte)2)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)2)
                         .withPgmWriteSize((byte)1)
         );
 
@@ -165,8 +174,9 @@ public class AppConfig {
                         .withConfWords(1)
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(5)
-                        .withChipErase((byte)0)
-                        .withPgmEraseMode((byte)0)
+                        .withChipErase((byte)2)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)2)
                         .withPgmWriteSize((byte)1)
         );
     }
@@ -182,7 +192,8 @@ public class AppConfig {
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(4)
                         .withChipErase((byte)1)
-                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)1)
                         .withPgmWriteSize((byte)8)
         );
 
@@ -196,7 +207,8 @@ public class AppConfig {
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(4)
                         .withChipErase((byte)1)
-                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)1)
                         .withPgmWriteSize((byte)8)
         );
 
@@ -210,7 +222,8 @@ public class AppConfig {
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(4)
                         .withChipErase((byte)1)
-                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)1)
                         .withPgmWriteSize((byte)8)
         );
 
@@ -224,7 +237,8 @@ public class AppConfig {
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(4)
                         .withChipErase((byte)1)
-                        .withPgmEraseMode((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)1)
                         .withPgmWriteSize((byte)8)
         );
     }
@@ -240,7 +254,8 @@ public class AppConfig {
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(4)
                         .withChipErase((byte)1)
-                        .withPgmEraseMode((byte)1)
+                        .withPgmWriteMode((byte)1)
+                        .withMemEraseMode((byte)1)
                         .withPgmWriteSize((byte)4)
         );
 
@@ -254,7 +269,8 @@ public class AppConfig {
                         .withDataHexFileLogicalAddress(0x2100)
                         .withDeviceIdRevisionBits(4)
                         .withChipErase((byte)1)
-                        .withPgmEraseMode((byte)1)
+                        .withPgmWriteMode((byte)1)
+                        .withMemEraseMode((byte)1)
                         .withPgmWriteSize((byte)4)
         );
     }

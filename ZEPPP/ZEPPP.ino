@@ -8,8 +8,8 @@
 /* If you add commands or change anything that also requires the CLI to change 
  * please update the version number. That way you can keep the CLI and firmware
  * in sync. Make sure to also update the date string for your releases. */
-#define ZEPPP_VERSION_STRING    "1.0.0"
-#define ZEPPP_RELDATE_STRING    "20180630"
+#define ZEPPP_VERSION_STRING    "1.0.1"
+#define ZEPPP_RELDATE_STRING    "20200713"
 
 /* Pin assignment *******************************/
 const int PGM_PIN  = 9;
@@ -37,7 +37,11 @@ const int MCLR_PIN = 6;
 #define CMD_BULK_ERASE_PGM_MEM   0b001001
 #define CMD_BULK_ERASE_DAT_MEM   0b001011
 
-/* PIC16F88/PIC16F87x Commands */
+/* PIC16F87x Commands */
+#define CMD_BULK_ERASE_SETUP_1   0b000001
+#define CMD_BULK_ERASE_SETUP_2   0b000111
+
+/* PIC16F88/PIC16F87xA Commands */
 #define CMD_CHIP_ERASE           0b011111
 #define CMD_BEGIN_ERASE          0b001000 
 #define CMD_END_PROGRAMMING      0b010111 
@@ -111,6 +115,9 @@ void lvp_exit_pgm_mode() {
   digitalWrite (MCLR_PIN, HIGH);
 }
 
+void reset_lvp(){
+  lvp_enter_pgm_mode();
+}
 /*############################################################################
  *##                                                                        ##
  *##           I C S P   B I T   B A N G I N G   R O U T I N E S            ##
@@ -240,6 +247,16 @@ void begin_erase(){
   delay(DELAY_PGM_IN_MS); 
 } 
 
+void bulk_erase_setup_1(){ 
+  icsp_send_cmd (CMD_BULK_ERASE_SETUP_1); 
+  delay(DELAY_PGM_IN_MS); 
+} 
+
+void bulk_erase_setup_2(){ 
+  icsp_send_cmd (CMD_BULK_ERASE_SETUP_2);
+  delay(DELAY_PGM_IN_MS); 
+} 
+
 /*############################################################################
  *##                                                                        ##
  *##             S E R I A L   A U X   F U N C T I O N S                    ##
@@ -360,6 +377,112 @@ char read_console_into_word_buffer () {
   } 
   return count; 
 } 
+
+/*############################################################################
+ *##                                                                        ##
+ *##                      HIGHER-LEVEL OPERATIONS                           ##
+ *##                                                                        ##
+ *############################################################################*/
+void increase_addr_n(byte n){
+  byte x;
+  for (x = 0; x < n; x++) increment_addr();
+}
+
+
+ReturnCode oper_erase_pgm_mem (byte eraseMode){
+  // So far only two modes are supported for Pgm Erase: 
+  // 0: Bulk erase suffices
+  // 1: Begin Erase is required after Bulk Erase
+  // 2: Load PGM Data + Bulk Setup 1 + 2 sequence
+  if (eraseMode > 2) return RET_ERR_OUT_OF_RANGE; 
+
+  reset_lvp();
+  if (eraseMode == 0) {
+    load_pgm_mem (0x3fff);
+    bulk_erase_pgm_mem();
+    delay(6);
+  }else if (eraseMode == 1){
+    load_pgm_mem (0x3fff);
+    bulk_erase_pgm_mem();
+    begin_erase();
+  } else {
+    load_pgm_mem(0x3fff);
+    bulk_erase_setup_1();
+    bulk_erase_setup_2();
+    begin_erase();
+    delay(8);
+    bulk_erase_setup_1();
+    bulk_erase_setup_2();
+  }
+  reset_lvp();
+  return RET_OK;
+}
+
+ReturnCode oper_erase_data_mem (byte eraseMode){
+  // So far only two modes are supported for Data Erase:
+  // 0: (Bulk erase suffices)
+  // 1: Begin Erase is required after Bulk Erase
+  // 2: Load Data + Bulk Setup 1 + 2 sequence
+  if (eraseMode > 2) return RET_ERR_OUT_OF_RANGE; 
+
+  reset_lvp();
+  if (eraseMode == 0){
+    bulk_erase_data_mem();
+    delay(6);
+  }else if (eraseMode == 1){
+    bulk_erase_data_mem();
+    begin_erase();
+  }else {
+    load_data_mem(0x3fff);
+    bulk_erase_setup_1();
+    bulk_erase_setup_2();
+    begin_erase();
+    delay(8);
+    bulk_erase_setup_1();
+    bulk_erase_setup_2();
+  }
+  reset_lvp();
+  return RET_OK;
+}
+
+
+ReturnCode oper_chip_erase (byte eraseMode){
+  // So far only three modes are supported for Chip Erase:
+  // 0: Erase PGM and Data Memory manually using Bulk Erase commands (used by devices like the 6x8A. They don't have a proper CHIP Erase command
+  // 1: Use Chip Erase command (11111)
+  // 2: Use Load Config + Bulk Erase Setup 1 and 2 sequence
+  if (eraseMode > 2) return RET_ERR_OUT_OF_RANGE; 
+
+  reset_lvp();
+  if (eraseMode == 0){
+    load_config_mem(0x3fff);
+    bulk_erase_pgm_mem();
+    delay(6);
+    bulk_erase_data_mem();
+    delay(6);
+  } else if (eraseMode == 1){
+    load_config_mem(0x3fff);
+    chip_erase();
+  } else {
+    load_config_mem(0x3fff);
+    increase_addr_n(7);
+    bulk_erase_setup_1();
+    bulk_erase_setup_2();
+    begin_erase();
+    delay(8);
+    bulk_erase_setup_1();
+    bulk_erase_setup_2();
+
+    // This "chip erase"algorithm will only clear the EEPROM DATA if CP was
+    // enabled. If it wasn't, it will just perform a bulk erase of PGM + CONFIG.
+    // So to make it fully "chip erase" we will also perform a bulk data erase
+    // separately.
+    oper_erase_data_mem (2);
+  }
+  reset_lvp();
+  return RET_OK;
+}
+
 /*############################################################################
  *##                                                                        ##
  *##             S E R I A L   C O M M A N D S  P A R S I N G               ##
@@ -387,7 +510,7 @@ ZEPPPCommand getCommand (char *buffer){
 ReturnCode execute_serial_cmd() {
   char ret;
   byte b, n, count;
-  byte writeSize, eraseMode;
+  byte writeSize, eraseMode, writeMode;
   word w;
   ZEPPPCommand cmdCode = getCommand(serialBuffer);
 
@@ -419,23 +542,28 @@ ReturnCode execute_serial_cmd() {
 
     // Chip Erase --------
     case ZEPPP_CMD_CHIP_ERASE:
-      chip_erase();
-      RET_MSG_OK;
-      Serial.println("CHIP Erase");
+      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED; 
+      if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED; 
+      ret = oper_chip_erase(eraseMode);
+      if (ret != RET_OK) {
+        return ret;
+      } else {
+        RET_MSG_OK;
+      }
+      Serial.print("CHIP Erase ");
+      Serial.println(eraseMode, 10);
     break;
 
     // PGM Memory Erase --------
     case ZEPPP_CMD_PGM_MEM_ERASE:
       if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED; 
       if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED; 
-      // So far only two modes are supported for Pgm Erase: 0 (Bulk erase suffices) and 1 (Begin Erase is required after Bulk Erase)
-      if (eraseMode > 1) return RET_ERR_OUT_OF_RANGE; 
-
-      load_pgm_mem (0x3fff);
-      bulk_erase_pgm_mem();
-      if (eraseMode != 0) begin_erase(); // Not required for older pics.
-
-      RET_MSG_OK;
+      ret = oper_erase_pgm_mem(eraseMode);
+      if (ret != RET_OK) {
+        return ret;
+      } else {
+        RET_MSG_OK;
+      }
       Serial.println(F("PROGRAM Memory Erased"));
     break;
 
@@ -443,12 +571,12 @@ ReturnCode execute_serial_cmd() {
     case ZEPPP_CMD_DATA_MEM_ERASE:
       if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED; 
       if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED;
-      // So far only two modes are supported for Data Erase: 0 (Bulk erase suffices) and 1 (Begin Erase is required after Bulk Erase)
-      if (eraseMode > 1) return RET_ERR_OUT_OF_RANGE; 
-
-      bulk_erase_data_mem();
-      if (eraseMode != 0) begin_erase(); // Not required for older pics.
-      RET_MSG_OK;
+      ret = oper_erase_data_mem(eraseMode);
+      if (ret != RET_OK) {
+        return ret;
+      } else {
+        RET_MSG_OK;
+      }
       Serial.println(F("DATA (EEPROM) Memory Erased"));
     break;
 
@@ -463,9 +591,7 @@ ReturnCode execute_serial_cmd() {
     case ZEPPP_CMD_INCREASE_ADDRESS:
       if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
       if (!serial_parse_getbyte(&b)) return RET_ERR_HEX_BYTE_EXPECTED;
-      for (byte n = 0; n < b; n++) {
-        increment_addr();
-      }
+      increase_addr_n (b);
       RET_MSG_OK;
       Serial.print(F("Address Pointer increased "));
       Serial.print(b, DEC);
@@ -495,15 +621,15 @@ ReturnCode execute_serial_cmd() {
     // PGM Memory Write --------
     case ZEPPP_CMD_PGM_MEM_WRITE:
       if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_getbyte(&writeMode)) return RET_ERR_HEX_BYTE_EXPECTED;
       // So far only two modes are supported for word-based PGM writes: 0 (Use Erase/Pgm cycle) and 1: (Use Program-only cycle)
-      if (eraseMode > 1) return RET_ERR_OUT_OF_RANGE; 
+      if (writeMode > 1) return RET_ERR_OUT_OF_RANGE; 
 
       // Negative values are error codes.
       ret = read_console_into_word_buffer();
       if (ret < 0) return (ReturnCode)(-ret);
       count = ret;
-      if (eraseMode == 0) {
+      if (writeMode == 0) {
         for (b = 0; b < count; b++) {
           w = wordBuffer[b];
           load_pgm_mem(w);
@@ -559,16 +685,16 @@ ReturnCode execute_serial_cmd() {
     // DATA Memory Write --------
     case ZEPPP_CMD_DATA_MEM_WRITE:
       if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_getbyte(&writeMode)) return RET_ERR_HEX_BYTE_EXPECTED;
       // So far only two modes are supported for EEPROM  writes: 0 (Use Erase/Pgm cycle) and 1: (Use Program-only cycle with Begin Erase)
-      if (eraseMode > 1) return RET_ERR_OUT_OF_RANGE; 
+      if (writeMode > 1) return RET_ERR_OUT_OF_RANGE; 
 
       // Negative values are error codes.
       ret = read_console_into_word_buffer();
       if (ret < 0) return (ReturnCode)(-ret);
       count = ret;
 
-      if (eraseMode == 0){
+      if (writeMode == 0){
         for (b = 0; b < count; b++) {
           w = wordBuffer[b];
           load_data_mem(w);

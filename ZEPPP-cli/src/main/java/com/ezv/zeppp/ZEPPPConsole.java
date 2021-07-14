@@ -39,7 +39,7 @@ public class ZEPPPConsole {
         commandList = new ArrayList<>();
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_VERSION, "v", "version", null,
-                "Shows current CLI version."));
+                "Shows current CLI version and supported PIC devices."));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_COMM, "c", "comm-port", "<COMM PORT>",
                 "Selects the COMM port where the interface is plugged in, and attempts to establish connection."));
@@ -228,8 +228,8 @@ public class ZEPPPConsole {
             case CLI_COMMAND_DEVICE:
                 requireZEPPPInterface();
                 if (!programConfig.setSelectedDevice(trimValue)) {
-                    ZEPPPConsole.critical(String.format("Unsupported device '%s'. Valid devices are: %s", trimValue, programConfig
-                            .getSupportedPICDevices().toString()));
+                    ZEPPPConsole.critical(String.format("Unsupported device '%s'. Valid devices are: %s", trimValue,
+                            programConfig.getSupportedPICDevices().toString()));
                 } else {
                     ZEPPPConsole.msg(String.format("Pic device '%s' selected", programConfig.getSelectedDevice().getDeviceName()));
                 }
@@ -356,8 +356,9 @@ public class ZEPPPConsole {
                 return false;
 
             case CLI_COMMAND_VERSION:
-                msg ("ZEPPP CLI version: " + ZEPPP_CLI_VERSION);
-                msg ("Supported ZEPPP Interface version: " + ZEPPPClient.ZEPPP_EXPECTED_VERSION);
+                ZEPPPConsole.msg ("ZEPPP CLI version: " + ZEPPP_CLI_VERSION);
+                ZEPPPConsole.msg ("Supported ZEPPP Interface version: " + ZEPPPClient.ZEPPP_EXPECTED_VERSION);
+                ZEPPPConsole.msg("Supported PIC devices: " + programConfig.getSupportedPICDevices().toString());
                 return false;
 
         }

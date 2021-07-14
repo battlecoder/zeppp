@@ -8,7 +8,7 @@ Currently ZEPPP supports the following PIC devices:
 * 16F87, 16F88
 * 16F627A, 16F628A, 16F648A
 * 16F873A, 16F874A, 16F876A, 16F877A.
-* 16F873, 16F874, 16F876, 16F877 (Untested)
+* 16F870, 16F871, 16F872, 16F873, 16F874, 16F876, 16F877 (Untested)
 
 And can work with all the memory areas from the supported PICs (Program memory, EEPROM, Config words and User IDs).
 
@@ -26,17 +26,19 @@ Strictly speaking you can use the Arduino on its own to program your PICs withou
 ## CONNECTING A PIC
 Since this is a ICSP programmer you need to connect your Arduino (with the ZEPPP firmware) to your PIC using the ICSP pins (PGM, PGC, PGD, MCLR). On the Arduino side, those signals are mapped to digital pins 6 to 9. The exact mapping can be found at the top of the ZEPPP sketch in a section called "Pin assignment". You'll also need to connect the GND pin of your PIC to your Arduino's GND.
 
-Unless you are targetting a PIC board with an already mounted ICSP header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal. The following table shows the pins that should be connected depending on the target device family, with the current version of the firmware:
+Unless you are targetting a PIC board with an already mounted ICSP header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal. The following table shows the pins that should be connected depending on the PIC device family, with the current version of the firmware:
 
 | Arduino | ICSP Signal | PIC 16F6xxA  | PIC 16F87/88 | PIC 16F87x(A)|
 | ------- | ----------- | ------------ | ------------ | ------------ |
-| D9      | PGM         | RB4 (Pin 10) | RB3 (Pin 9)  | RB3 (Pin 36) |
-| D8      | PGC         | RB6 (Pin 12) | RB6 (Pin 12) | RB6 (Pin 39) |
-| D7      | PGD         | RB7 (Pin 13) | RB7 (Pin 13) | RB7 (Pin 40) |
-| D6      | MCLR        | RA5 (Pin 4)  | RA5 (Pin 4)  | MCLR (Pin 1) |
-| GND     | Ground      | Vss (Pin 5)  | Vss (Pin 5)  | Vss (10, 31) |
+| D9      | PGM (6)     | RB4 (Pin 10) | RB3 (Pin 9)  | RB3 (Pin 36) |
+| D8      | PGC (5)     | RB6 (Pin 12) | RB6 (Pin 12) | RB6 (Pin 39) |
+| D7      | PGD (4)     | RB7 (Pin 13) | RB7 (Pin 13) | RB7 (Pin 40) |
+| D6      | MCLR (1)    | RA5 (Pin 4)  | RA5 (Pin 4)  | MCLR (Pin 1) |
+| GND     | Ground (3)  | Vss (Pin 5)  | Vss (Pin 5)  | Vss (12, 31) |
 
-As briefly mentioned before, if your target board has a proper ICSP connector you would need connect the Arduino pins to the corresponding signals on the ICSP header, but bear in mind that if the board does not support Low-Voltage Programming (LVP) it will most likely lack the "PGM" signal, and you won't be able to use this programmer.
+As briefly mentioned before, if your target board has a proper ICSP connector, you would need connect the Arduino pins to the corresponding signals on the ICSP header, but bear in mind that if the ICSP connector on your board does not support Low-Voltage Programming (LVP), it will most likely lack the "PGM" signal, and you won't be able to use this programmer.
+Your target PIC also needs to be connected to power (Its VDD pin/s must be getting their operational voltage, which is most likely going to be 5V). You can get away with using your Arduino's 5V pin for that if the PIC you want to program is not connected to anything else.
+
 
 ## COMMAND-LINE UTILITY
 The Command Line Interface (CLI) for this project was written in Java so it **should** work on Linux, Windows, OSX, and Raspberry Pi boards, although I've only tested it on Windows. Of course this means you'll need to [download and install Java](https://www.java.com/en/download/help/download_options.xml) on your machine first.
@@ -69,7 +71,7 @@ This tells the CLI that the Arduino with the ZEPPP firmware is on COM3, then loa
 Same as before but we are using an Arduino that resets itself when a serial connection is established, so we need to wait 2 seconds (2000 ms) before trying to send any command.
 
 ---
-> **_NOTE:_**  Most Arduino variants equipped with a USB-Serial driver for programming (Arduino Uno, Nano, etc) need the **-wait** parameter with at least a delay of 2 seconds after the COM port is selected. This is because they automatically reset the microcontroller when a connection is eastablished to talk to the bootloader. The [Arduino Pro Mini](https://www.arduino.cc/en/pmwiki.php?n=Main/ArduinoBoardProMini) (The one without on-board USB Serial IC, that needs to be manually reset via push-button when programmed) is the only Arduino I've tested so far that doesn't need this, because it doesn't auto-resets on serial connections.
+> **_NOTE:_**  Most Arduino variants equipped with a USB-Serial driver for programming (Arduino Uno, Nano, etc) need the **-wait** parameter with at least a delay of 2 seconds after the COM port is selected. This is because they automatically reset the microcontroller when a connection is eastablished to talk to the bootloader. The [Arduino Pro Mini](https://www.arduino.cc/en/pmwiki.php?n=Main/ArduinoBoardProMini) (The one without on-board USB Serial IC, that needs to be manually reset via push-button when programmed) is the only Arduino I've tested so far that doesn't need this, because it doesn't auto-reset on serial connections.
 ---
 
 **Example 3**
@@ -85,13 +87,13 @@ ZEPPP at COM3, The CLI will autodetect the connected PIC device and will read th
 **Example 5**
 > zeppp-cli -c COM3 -wait 2000 -d 16f628a -i file_with_only_eeprom_data.hex -pe
 
-A more complicated example: ZEPPP firmware is in COM3 and we need to wait the 2 seconds before sending commands because we are using an Arduino Pro mini that resets when you connect to it. After the pause, we tell the CLI that we expect a 16F628A (this will check the connected PIC and will refuse to continue if a different PIC is found), and then we read an hex file that only contains eeprom data, which we will proceed to program into the PIC without touching other memory areas (-pe = Program EEPROM only).
+A more complicated example: ZEPPP firmware is in COM3 and we need to wait the 2 seconds before sending commands because we are using an Arduino Uno. After the pause, we tell the CLI that we expect a 16F628A (this will check the connected PIC and will refuse to continue if a different PIC is found), and then we read an hex file that only contains eeprom data, which we will proceed to program into the PIC without touching other memory areas (-pe = Program EEPROM only).
 
 
 ## BUILDING THE CLI FROM SOURCE CODE
 You can skip this step if you use the [pre-compiled JAR](https://github.com/battlecoder/zeppp/blob/master/zeppp-cli.jar), which should work out of the box in most systems.
 
-If you want to build the tool yourself from the source code, you'll need [Apache Maven](https://maven.apache.org/) and the [Java JDK version 8 or better](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html).
+If you want to build the tool yourself from source code, you'll need [Apache Maven](https://maven.apache.org/) and the [Java JDK version 8 or better](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html).
 Once you have both working in your enviroment, building the CLI program only requires you to run:
 
     > cd ZEPPP-cli
