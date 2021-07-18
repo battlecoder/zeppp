@@ -1,4 +1,3 @@
-
 /*############################################################################
  *##                                                                        ##
  *##                                  C O N F I G                           ##
@@ -9,7 +8,7 @@
  * please update the version number. That way you can keep the CLI and firmware
  * in sync. Make sure to also update the date string for your releases. */
 #define ZEPPP_VERSION_STRING    "1.0.1"
-#define ZEPPP_RELDATE_STRING    "20200713"
+#define ZEPPP_RELDATE_STRING    "20200715"
 
 /* Pin assignment *******************************/
 const int PGM_PIN  = 9;
@@ -22,6 +21,8 @@ const int MCLR_PIN = 6;
 #define DELAY_SHORT_IN_US        5
 #define DELAY_LONG_IN_US         10
 #define DELAY_PGM_IN_MS          5
+#define DELAY_ERASE_IN_MS        6 // Based on the 16F6XX datasheet
+#define DELAY_ERASESETUP_IN_MS   8 // Based on the 16F87X (non-A) datasheet
 #define PIC_PGM_ROW              32 
 #define MAX_SERIAL_IN_BUFFER     PIC_PGM_ROW*5 + 10 
 
@@ -365,17 +366,18 @@ void read_and_print_data_mem_words (byte sze){
   Serial.write('\n');
 }
 
-char read_console_into_word_buffer () { 
+ReturnCode read_console_into_word_buffer (byte *count_dest) { 
   byte count = 0; 
   word w; 
  
   while (serial_parse_match(' ')){ 
-    if (count > PIC_PGM_ROW) return -RET_ERR_OUT_OF_RANGE; 
-    if (!serial_parse_getword(&w, 4)) return -RET_ERR_HEX_WORD_EXPECTED; 
+    if (count > PIC_PGM_ROW) return RET_ERR_OUT_OF_RANGE; 
+    if (!serial_parse_getword(&w, 4)) return RET_ERR_HEX_WORD_EXPECTED; 
     wordBuffer[count] = w; 
     count++; 
-  } 
-  return count; 
+  }
+  *count_dest = count;
+  return RET_OK; 
 } 
 
 /*############################################################################
@@ -400,7 +402,7 @@ ReturnCode oper_erase_pgm_mem (byte eraseMode){
   if (eraseMode == 0) {
     load_pgm_mem (0x3fff);
     bulk_erase_pgm_mem();
-    delay(6);
+    delay(DELAY_ERASE_IN_MS);
   }else if (eraseMode == 1){
     load_pgm_mem (0x3fff);
     bulk_erase_pgm_mem();
@@ -410,7 +412,7 @@ ReturnCode oper_erase_pgm_mem (byte eraseMode){
     bulk_erase_setup_1();
     bulk_erase_setup_2();
     begin_erase();
-    delay(8);
+    delay(DELAY_ERASESETUP_IN_MS);
     bulk_erase_setup_1();
     bulk_erase_setup_2();
   }
@@ -428,7 +430,7 @@ ReturnCode oper_erase_data_mem (byte eraseMode){
   reset_lvp();
   if (eraseMode == 0){
     bulk_erase_data_mem();
-    delay(6);
+    delay(DELAY_ERASE_IN_MS);
   }else if (eraseMode == 1){
     bulk_erase_data_mem();
     begin_erase();
@@ -437,7 +439,7 @@ ReturnCode oper_erase_data_mem (byte eraseMode){
     bulk_erase_setup_1();
     bulk_erase_setup_2();
     begin_erase();
-    delay(8);
+    delay(DELAY_ERASESETUP_IN_MS);
     bulk_erase_setup_1();
     bulk_erase_setup_2();
   }
@@ -457,9 +459,9 @@ ReturnCode oper_chip_erase (byte eraseMode){
   if (eraseMode == 0){
     load_config_mem(0x3fff);
     bulk_erase_pgm_mem();
-    delay(6);
+    delay(DELAY_ERASE_IN_MS);
     bulk_erase_data_mem();
-    delay(6);
+    delay(DELAY_ERASE_IN_MS);
   } else if (eraseMode == 1){
     load_config_mem(0x3fff);
     chip_erase();
@@ -469,7 +471,7 @@ ReturnCode oper_chip_erase (byte eraseMode){
     bulk_erase_setup_1();
     bulk_erase_setup_2();
     begin_erase();
-    delay(8);
+    delay(DELAY_ERASESETUP_IN_MS);
     bulk_erase_setup_1();
     bulk_erase_setup_2();
 
@@ -480,6 +482,81 @@ ReturnCode oper_chip_erase (byte eraseMode){
     oper_erase_data_mem (2);
   }
   reset_lvp();
+  return RET_OK;
+}
+
+ReturnCode oper_write_pgm_mem_from_buffer(byte count, byte writeMode){
+  byte b;
+  word w;
+  if (writeMode == 0) {
+    for (b = 0; b < count; b++) {
+      w = wordBuffer[b];
+      load_pgm_mem(w);
+      erase_and_program_cycle();
+      if (read_pgm_mem() != w) return RET_ERR_VERIFICATION_FAILED;
+      increment_addr();
+    }
+  }else {
+    for (b = 0; b < count; b++) {
+      w = wordBuffer[b];
+      load_pgm_mem(w);
+      program_only_cycle();
+      end_programming();
+      if (read_pgm_mem() != w) return RET_ERR_VERIFICATION_FAILED;
+      increment_addr();
+    }
+  }
+  return RET_OK;
+}
+
+ReturnCode oper_write_data_from_buffer(byte count, byte writeMode){
+  byte b;
+  word w;
+  if (writeMode == 0){
+    for (b = 0; b < count; b++) {
+      w = wordBuffer[b];
+      load_data_mem(w);
+      erase_and_program_cycle();
+      if ((read_data_mem() & 0xff) != (w & 0xff)) return RET_ERR_VERIFICATION_FAILED;
+      increment_addr();
+    }
+  } else {
+    load_data_mem(0xff);
+    for (b = 0; b < count; b ++) { 
+      begin_erase(); 
+      end_programming();
+      w = wordBuffer[b]; 
+      load_data_mem(w);
+      program_only_cycle();
+      end_programming();
+      if ((read_data_mem() & 0xff) != (w & 0xff)) return RET_ERR_VERIFICATION_FAILED;
+      increment_addr(); 
+    }
+  }
+  return RET_OK;
+}
+
+ReturnCode oper_write_pgm_block_from_buffer(byte count, byte writeSize){
+  byte b, n;
+  word w;
+
+  load_pgm_mem(0x3fff);
+  begin_erase(); 
+  end_programming(); 
+  for (b = 0; b < count; b += writeSize) { 
+    for (n = 0; n < writeSize; n++){ 
+      if (b + n < count) { 
+        w = wordBuffer[b + n]; 
+      }else { 
+        w = 0x3fff; 
+      }
+      load_pgm_mem(w); 
+      if (n < writeSize - 1) increment_addr(); 
+    }
+    program_only_cycle(); 
+    end_programming(); 
+    increment_addr(); 
+  }
   return RET_OK;
 }
 
@@ -509,9 +586,8 @@ ZEPPPCommand getCommand (char *buffer){
 
 ReturnCode execute_serial_cmd() {
   char ret;
-  byte b, n, count;
+  byte count;
   byte writeSize, eraseMode, writeMode;
-  word w;
   ZEPPPCommand cmdCode = getCommand(serialBuffer);
 
   // WARNING ABOUT COMMANDS:
@@ -590,32 +666,32 @@ ReturnCode execute_serial_cmd() {
     // Increment Address --------
     case ZEPPP_CMD_INCREASE_ADDRESS:
       if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&b)) return RET_ERR_HEX_BYTE_EXPECTED;
-      increase_addr_n (b);
+      if (!serial_parse_getbyte(&count)) return RET_ERR_HEX_BYTE_EXPECTED;
+      increase_addr_n (count);
       RET_MSG_OK;
       Serial.print(F("Address Pointer increased "));
-      Serial.print(b, DEC);
+      Serial.print(count, DEC);
       Serial.println(F(" positions"));
     break;
 
     // DATA Memory Read --------
     case ZEPPP_CMD_DATA_MEM_READ:
       if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&b)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_getbyte(&count)) return RET_ERR_HEX_BYTE_EXPECTED;
 
       load_data_mem (0xff);
       RET_MSG_OK;
-      read_and_print_data_mem_words (b);
+      read_and_print_data_mem_words (count);
     break;
 
     // PGM Memory Read --------
     case ZEPPP_CMD_PGM_MEM_READ:
       if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&b)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_getbyte(&count)) return RET_ERR_HEX_BYTE_EXPECTED;
 
       load_pgm_mem (0x3fff);
       RET_MSG_OK;
-      read_and_print_pgm_mem_words (b);
+      read_and_print_pgm_mem_words (count);
     break;
 
     // PGM Memory Write --------
@@ -625,29 +701,15 @@ ReturnCode execute_serial_cmd() {
       // So far only two modes are supported for word-based PGM writes: 0 (Use Erase/Pgm cycle) and 1: (Use Program-only cycle)
       if (writeMode > 1) return RET_ERR_OUT_OF_RANGE; 
 
-      // Negative values are error codes.
-      ret = read_console_into_word_buffer();
-      if (ret < 0) return (ReturnCode)(-ret);
-      count = ret;
-      if (writeMode == 0) {
-        for (b = 0; b < count; b++) {
-          w = wordBuffer[b];
-          load_pgm_mem(w);
-          erase_and_program_cycle();
-          if (read_pgm_mem() != w) return RET_ERR_VERIFICATION_FAILED;
-          increment_addr();
-        }
-      }else {
-        for (b = 0; b < count; b++) {
-          w = wordBuffer[b];
-          load_pgm_mem(w);
-          program_only_cycle();
-          end_programming();
-          if (read_pgm_mem() != w) return RET_ERR_VERIFICATION_FAILED;
-          increment_addr();
-        }
+      ret = read_console_into_word_buffer(&count);
+      if (ret != RET_OK) return ret;
+
+      ret = oper_write_pgm_mem_from_buffer(count, writeMode);
+      if (ret != RET_OK) {
+        return ret;
+      } else {
+        RET_MSG_OK;
       }
-      RET_MSG_OK;
       Serial.println(F("PGM block written"));
     break;
 
@@ -658,27 +720,15 @@ ReturnCode execute_serial_cmd() {
       if (writeSize < 2 || writeSize > PIC_PGM_ROW) return RET_ERR_OUT_OF_RANGE;
 
       // Negative values are error codes.
-      ret = read_console_into_word_buffer();
-      if (ret < 0) return (ReturnCode)(-ret);
-      count = ret;
-      load_pgm_mem(0x3fff);
-      begin_erase(); 
-      end_programming(); 
-      for (b = 0; b < count; b += writeSize) { 
-        for (n = 0; n < writeSize; n++){ 
-          if (b + n < count) { 
-            w = wordBuffer[b + n]; 
-          }else { 
-            w = 0x3fff; 
-          }
-          load_pgm_mem(w); 
-          if (n < writeSize - 1) increment_addr(); 
-        }
-        program_only_cycle(); 
-        end_programming(); 
-        increment_addr(); 
+      ret = read_console_into_word_buffer(&count);
+      if (ret != RET_OK) return ret;
+
+      ret = oper_write_pgm_block_from_buffer (count, writeSize);
+      if (ret != RET_OK) {
+        return ret;
+      } else {
+        RET_MSG_OK;
       }
-      RET_MSG_OK;
       Serial.println(F("PGM block written"));
     break;
 
@@ -689,33 +739,15 @@ ReturnCode execute_serial_cmd() {
       // So far only two modes are supported for EEPROM  writes: 0 (Use Erase/Pgm cycle) and 1: (Use Program-only cycle with Begin Erase)
       if (writeMode > 1) return RET_ERR_OUT_OF_RANGE; 
 
-      // Negative values are error codes.
-      ret = read_console_into_word_buffer();
-      if (ret < 0) return (ReturnCode)(-ret);
-      count = ret;
+      ret = read_console_into_word_buffer(&count);
+      if (ret != RET_OK) return ret;
 
-      if (writeMode == 0){
-        for (b = 0; b < count; b++) {
-          w = wordBuffer[b];
-          load_data_mem(w);
-          erase_and_program_cycle();
-          if ((read_data_mem() & 0xff) != (w & 0xff)) return RET_ERR_VERIFICATION_FAILED;
-          increment_addr();
-        }
+      ret = oper_write_data_from_buffer(count, writeMode);
+      if (ret != RET_OK) {
+        return ret;
       } else {
-        load_data_mem(0xff);
-        for (b = 0; b < count; b ++) { 
-          begin_erase(); 
-          end_programming();
-          w = wordBuffer[b]; 
-          load_data_mem(w);
-          program_only_cycle();
-          end_programming();
-          if ((read_data_mem() & 0xff) != (w & 0xff)) return RET_ERR_VERIFICATION_FAILED;
-          increment_addr(); 
-        }
+        RET_MSG_OK;
       }
-      RET_MSG_OK;
       Serial.println(F("DATA block written"));
     break;
 

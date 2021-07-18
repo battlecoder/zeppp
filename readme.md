@@ -8,7 +8,7 @@ Currently ZEPPP supports the following PIC devices:
 * 16F87, 16F88
 * 16F627A, 16F628A, 16F648A
 * 16F873A, 16F874A, 16F876A, 16F877A.
-* 16F870, 16F871, 16F872, 16F873, 16F874, 16F876, 16F877 (Untested)
+* 16F870, 16F871, 16F872, 16F873, 16F874, 16F876, 16F877
 
 And can work with all the memory areas from the supported PICs (Program memory, EEPROM, Config words and User IDs).
 

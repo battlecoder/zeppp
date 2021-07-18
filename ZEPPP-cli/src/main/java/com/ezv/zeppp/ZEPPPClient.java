@@ -23,7 +23,6 @@ public class ZEPPPClient {
     public static final int DATA_UNITS_PER_READWRITE        = 32;
     public static final String ZEPPP_EXPECTED_VERSION      = "1.0.1";
     public static final int ZEPPP_BAUD_RATE                = 115200;
-    public static final String VERIFICATION_SKIPPED         = "Verification skipped. ZEPPP does read-back verification for word-based writes.";
 
     CommPort comm = null;
     boolean currentlyInLVPMode;
@@ -131,9 +130,11 @@ public class ZEPPPClient {
         int[] uids = response.getMessageWordArray();
         if (uids.length != PicDevice.USER_IDS_COUNT) throw new ZEPPPCommandException("Data size mismatch", "Verify User ID Memory");
         verifyWordBuffer (picDevice.getUserIds(), 0, uids);
+        ZEPPPConsole.msg("User ID Verification finished successfully.");
     }
 
     public void verifyConfigWords (PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException {
+        resetLVP();
         ZEPPPConsole.msg("Verifying Config Words...");
 
         selectConfigMemStart(PicDevice.CONF_WORD_OFFSET);
@@ -143,6 +144,7 @@ public class ZEPPPClient {
         int []dataReceived = response.getMessageWordArray();
         if (dataReceived.length != picDevice.getDeviceCfg().getConfWords()) throw new ZEPPPCommandException("Data size mismatch", "Verify Configuration Memory");
         verifyWordBuffer (picDevice.getConfWords(), 0, dataReceived);
+        ZEPPPConsole.msg("Config Word Verification finished successfully.");
     }
 
     public void verifyPgmMem (PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException {
@@ -168,7 +170,7 @@ public class ZEPPPClient {
                 verifyWordBuffer(pgmMem, i*2, words);
             }
         }
-        ZEPPPConsole.msg("Verification finished successfully.");
+        ZEPPPConsole.msg("PGM Memory Verification finished successfully.");
     }
 
     public void readPgmMem (PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException {
@@ -230,6 +232,12 @@ public class ZEPPPClient {
         }
     }
 
+    public void readAll(PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException{
+        readUserIDs (picDevice);
+        readConfigWords (picDevice);
+        readPgmMem (picDevice);
+        readDataMem (picDevice);
+    }
 
 
     public void verifyDataMem (PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException {
@@ -255,6 +263,7 @@ public class ZEPPPClient {
                 verifyWordBuffer(dataMem, i*2, bytes);
             }
         }
+        ZEPPPConsole.msg("EEPROM Verification finished successfully.");
     }
 
     public void verifyWordBuffer (HexBuffer picDeviceBuffer, int startOffset, int [] dataReceived) throws ZEPPPCommandException {
@@ -262,12 +271,11 @@ public class ZEPPPClient {
             int expected = picDeviceBuffer.getWord(startOffset + i*2);
             if (dataReceived[i] != expected) {
                 throw new ZEPPPCommandException(
-                        String.format("Expected 0x%04x. Received 0x%04x instead", expected, dataReceived[i]),
+                        String.format("Expected 0x%04x. Got 0x%04x instead", expected, dataReceived[i]),
                         String.format("Verify data at offset 0x%04x!", (i + startOffset))
                 );
             }
         }
-        ZEPPPConsole.msg("Verification finished successfully.");
     }
 
     public void saveWordBuffer (HexBuffer picDeviceBuffer, int startOffset, int [] dataReceived) {
@@ -300,7 +308,7 @@ public class ZEPPPClient {
         throwExceptionOnFailure(sendCommandWithByte(ZEPPP.ZEPPP_CMD_CHIP_ERASE, picDevice.getDeviceCfg().getChipErase()), "Erase CHIP");
     }
 
-    public void writePgmMem (PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException {
+    public void writePgmMem (PicDevice picDevice) throws ZEPPPCommandException {
         HexBuffer pgmMem = picDevice.getProgramMem();
         int pgmMemSizeInWords = getMaxWrittenWords(pgmMem);
         byte writeSize = picDevice.getDeviceCfg().getPgmWriteSize();
@@ -320,11 +328,6 @@ public class ZEPPPClient {
                         String.format("Write PGM Memory block 0x%04x", i)
                 );
             }
-        }
-        if (writeSize == 1) {
-            ZEPPPConsole.info(VERIFICATION_SKIPPED);
-        }else {
-            verifyPgmMem(picDevice);
         }
     }
 
@@ -357,7 +360,6 @@ public class ZEPPPClient {
                 );
             }
         }
-        ZEPPPConsole.info(VERIFICATION_SKIPPED);
     }
 
     public void writeUserIDs (PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException {
@@ -367,11 +369,6 @@ public class ZEPPPClient {
         ZEPPPConsole.msg("Writing User IDs...");
         selectConfigMemStart(0);
         sendPgmWriteCommand(writeSize, writeMode, picDevice.getUserIds(), 0, PicDevice.USER_IDS_COUNT);
-        if (writeSize < 2) {
-            ZEPPPConsole.info(VERIFICATION_SKIPPED);
-        } else {
-            verifyUserIDs(picDevice);
-        }
     }
 
     public void writeConfigWords (PicDevice picDevice) throws ZEPPPCommandException {
@@ -385,7 +382,6 @@ public class ZEPPPClient {
         if ((picDevice.getConfWords().getWord(0) & PicDevice.CONF_WORD_LVP_MASK) == 0) {
             ZEPPPConsole.info("Your code seems to disable Low-Voltage Programming. This won't be saved in PIC memory!");
         }
-        ZEPPPConsole.info(VERIFICATION_SKIPPED);
     }
 
     public void writeAll (PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException {
@@ -396,6 +392,32 @@ public class ZEPPPClient {
         // Write configuration last, because if code-protection is enabled we won't be able to
         // verify memory in the previous steps.
         writeConfigWords(picDevice);
+    }
+
+    public void programAll(PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException {
+        resetLVP();
+        chipErase(picDevice);
+        writeUserIDs(picDevice);
+        verifyUserIDs(picDevice);
+        writePgmMem(picDevice);
+        verifyPgmMem(picDevice);
+        writeDataMem(picDevice);
+        verifyDataMem(picDevice);
+        writeConfigWords(picDevice);
+        try {
+            verifyConfigWords(picDevice);
+        } catch (ZEPPPCommandException ex) {
+            ZEPPPConsole.info(ex.getMessage());
+            ZEPPPConsole.info("Verification can fail if CP was enabled, or the Conf. Word tried to disable LVP.");
+        }
+    }
+
+    public void verifyAll(PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException{
+        resetLVP();
+        verifyUserIDs(picDevice);
+        verifyConfigWords(picDevice);
+        verifyPgmMem(picDevice);
+        verifyDataMem(picDevice);
     }
 
     public void selectConfigMemStart (int withOffSet) throws ZEPPPCommandException {
@@ -424,7 +446,6 @@ public class ZEPPPClient {
         if (writeSize < 2) {
             return sendPgmCmndWithByteAndBuffer (ZEPPP.ZEPPP_CMD_PGM_MEM_WRITE, writeMode, wordBuffer, startWordNdx, numberOfWords);
         } else {
-            // Devices that support block write normally have writeMode = 1
             return sendPgmCmndWithByteAndBuffer (ZEPPP.ZEPPP_CMD_PGM_MEM_BLOCKWRITE, writeSize, wordBuffer, startWordNdx, numberOfWords);
         }
     }
