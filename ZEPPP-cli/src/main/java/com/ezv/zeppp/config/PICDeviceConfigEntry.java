@@ -19,8 +19,9 @@ public class PICDeviceConfigEntry {
     private int confWords = 0;
     private int deviceIdRevisionBits = 0;
     private byte chipErase = 0;
-    private byte pgmEraseMode = 0;
+    private byte pgmWriteMode = 0;
     private byte pgmWriteSize = 1;
+    private byte memEraseMode = 0;
 
     public PICDeviceConfigEntry (String deviceName) {
         this.deviceName = deviceName;
@@ -58,12 +59,16 @@ public class PICDeviceConfigEntry {
         return chipErase;
     }
 
-    public byte getPgmEraseMode () {
-        return pgmEraseMode;
+    public byte getPgmWriteMode() {
+        return pgmWriteMode;
     }
 
     public byte getPgmWriteSize () {
         return pgmWriteSize;
+    }
+
+    public byte getMemEraseMode() {
+        return memEraseMode;
     }
 
     public String getDeviceName () {
@@ -110,8 +115,13 @@ public class PICDeviceConfigEntry {
         return this;
     }
 
-    public PICDeviceConfigEntry withPgmEraseMode (byte pgmEraseMode) {
-        this.pgmEraseMode = pgmEraseMode;
+    public PICDeviceConfigEntry withPgmWriteMode (byte pgmEraseMode) {
+        this.pgmWriteMode = pgmEraseMode;
+        return this;
+    }
+
+    public PICDeviceConfigEntry withMemEraseMode (byte memEraseMode) {
+        this.memEraseMode = memEraseMode;
         return this;
     }
 

@@ -12,6 +12,7 @@ NOTE!! ------------------------------------------------------------------------
     16 (HEX)!
 -------------------------------------------------------------------------------
 
+Commands end with CR (13)
 
 ###############################################################################
 COMMANDS
@@ -47,12 +48,13 @@ Notes:
 CHE
 -------------------------------
 Desc:      CHIP Erase
-Arguments: <None>
-Example:   CHE
+Arguments: [Chip Erase Mode]
+Example:   CHE 1
 Notes:
- This command is not supported by all microcontrollers.
- If you want to erase all areas in a PIC device that does not support
- this command you'll need to erase them one by one.
+ Chip Erase Mode will depend on the microcontroller.
+ 0: Manually Erase Program and Data memory blocks using Bulk Erase commands (Used by 627A, 6x8A).
+ 1: Use CHIP Erase command (11111)
+ 2: Use Load Config + Bulk Erase Setup 1 and 2 method + Manual Data Erase
  
 
 -------------------------------
@@ -81,15 +83,15 @@ Reads a number of words from PROGRAM (or CONFIG) memory.
 PMW
 -------------------------------
 Desc:      PROGRAM Memory Write
-Arguments: [PgmErase Mode: 0-1] [List of Words to Write]
+Arguments: [PgmWrite Mode: 0-1] [List of Words to Write]
 Example:   PMW 0 1F2B A032 023 3FF 1C00
 Notes:
   This command performs a series of "single-word" writes. The maximum number
   of words to write in a single call to this command is 32.
 
   Depending on the PIC device you may need to use either:
-    PgmErase Mode 0: Use the 'Erase / Program' command.
-    PgmErase Mode 1: Use the 'Program Only' and 'End Programming' sequence.
+    PgmWrite Mode 0: Use the 'Erase / Program' command.
+    PgmWrite Mode 1: Use the 'Program Only' and 'End Programming' sequence.
 
 -------------------------------
 PMB
@@ -107,12 +109,13 @@ Notes:
 PME
 -------------------------------
 Desc:      PROGRAM Memory Erase
-Arguments: [Erase Mode: 0-1]
+Arguments: [Erase Mode: 0-2]
 Example:   PME 0
 Notes:
  Depending on the PIC device you may need to use either:
    Mode 0: Send a standalone 'Bulk Erase' command.
    Mode 1: Send a 'Bulk Erase' followed by 'Begin Erase'
+   Mode 2: Load PGM Data + Bul Erase Setup 1 + 2 sequence
 
 
 -------------------------------
@@ -128,27 +131,28 @@ Notes:
 DMW
 -------------------------------
 Desc:      DATA (EEPROM) Memory Write
-Arguments: [PgmErase Mode: 0-1] [List of Words to Write]
+Arguments: [PgmWrite Mode: 0-1] [List of Words to Write]
 Example:
 Notes:
   This command performs a series of "single-word" writes. The maximum number
   of words to write in a single call to this command is 32.
 
   Depending on the PIC device you may need to use either:
-    PgmErase Mode 0: Use the 'Erase / Program' command.
-    PgmErase Mode 1: Use the 'Begin Erase', 'Program Only', 'End Programming' sequence.
+    PgmWrite Mode 0: Use the 'Erase / Program' command.
+    PgmWrite Mode 1: Use the 'Begin Erase', 'Program Only', 'End Programming' sequence.
 
 
 -------------------------------
 DME
 -------------------------------
 Desc:      DATA (EEPROM) Memory Erase
-Arguments: [Erase Mode: 0-1]
+Arguments: [Erase Mode: 0-2]
 Example:   DME 1
 Notes:
  Depending on the PIC device you may need to use either:
    Mode 0: Send a standalone 'Bulk Erase' command.
    Mode 1: Send a 'Bulk Erase' followed by 'Begin Erase'
+   Mode 2: Load Data + Bul Erase Setup 1 + 2 sequence
 
 
 -------------------------------

@@ -21,9 +21,8 @@ import com.ezv.zeppp.pic.PicDevice;
 
 public class ZEPPPClient {
     public static final int DATA_UNITS_PER_READWRITE        = 32;
-    public static final String ZEPPP_EXPECTED_VERSION      = "1.0.0";
+    public static final String ZEPPP_EXPECTED_VERSION      = "1.0.1";
     public static final int ZEPPP_BAUD_RATE                = 115200;
-    public static final String VERIFICATION_SKIPPED         = "Verification skipped. ZEPPP does read-back verification for word-based writes.";
 
     CommPort comm = null;
     boolean currentlyInLVPMode;
@@ -131,9 +130,11 @@ public class ZEPPPClient {
         int[] uids = response.getMessageWordArray();
         if (uids.length != PicDevice.USER_IDS_COUNT) throw new ZEPPPCommandException("Data size mismatch", "Verify User ID Memory");
         verifyWordBuffer (picDevice.getUserIds(), 0, uids);
+        ZEPPPConsole.msg("User ID Verification finished successfully.");
     }
 
     public void verifyConfigWords (PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException {
+        resetLVP();
         ZEPPPConsole.msg("Verifying Config Words...");
 
         selectConfigMemStart(PicDevice.CONF_WORD_OFFSET);
@@ -143,6 +144,7 @@ public class ZEPPPClient {
         int []dataReceived = response.getMessageWordArray();
         if (dataReceived.length != picDevice.getDeviceCfg().getConfWords()) throw new ZEPPPCommandException("Data size mismatch", "Verify Configuration Memory");
         verifyWordBuffer (picDevice.getConfWords(), 0, dataReceived);
+        ZEPPPConsole.msg("Config Word Verification finished successfully.");
     }
 
     public void verifyPgmMem (PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException {
@@ -168,6 +170,7 @@ public class ZEPPPClient {
                 verifyWordBuffer(pgmMem, i*2, words);
             }
         }
+        ZEPPPConsole.msg("PGM Memory Verification finished successfully.");
     }
 
     public void readPgmMem (PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException {
@@ -229,6 +232,12 @@ public class ZEPPPClient {
         }
     }
 
+    public void readAll(PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException{
+        readUserIDs (picDevice);
+        readConfigWords (picDevice);
+        readPgmMem (picDevice);
+        readDataMem (picDevice);
+    }
 
 
     public void verifyDataMem (PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException {
@@ -254,6 +263,7 @@ public class ZEPPPClient {
                 verifyWordBuffer(dataMem, i*2, bytes);
             }
         }
+        ZEPPPConsole.msg("EEPROM Verification finished successfully.");
     }
 
     public void verifyWordBuffer (HexBuffer picDeviceBuffer, int startOffset, int [] dataReceived) throws ZEPPPCommandException {
@@ -261,7 +271,7 @@ public class ZEPPPClient {
             int expected = picDeviceBuffer.getWord(startOffset + i*2);
             if (dataReceived[i] != expected) {
                 throw new ZEPPPCommandException(
-                        String.format("Expected 0x%04x. Received 0x%04x instead", expected, dataReceived[i]),
+                        String.format("Expected 0x%04x. Got 0x%04x instead", expected, dataReceived[i]),
                         String.format("Verify data at offset 0x%04x!", (i + startOffset))
                 );
             }
@@ -280,45 +290,29 @@ public class ZEPPPClient {
         }
     }
 
-    public void erasePgmAndConfigMemory(PicDevice picDevice)  throws ZEPPPCommandException {
-        // This causes all PGM and config memory to be wiped-out in devices that don't support chip erase, apparently.
-        selectConfigMemStart(0);
-        ZEPPPConsole.msg("Erasing Configuration and Program Memory...");
-        throwExceptionOnFailure(sendCommandWithByte(ZEPPP.ZEPPP_CMD_PGM_MEM_ERASE, picDevice.getDeviceCfg().getPgmEraseMode()), "Erase Config & Program Memory");
-    }
-
     public void erasePgmMem(PicDevice picDevice)  throws ZEPPPCommandException {
         resetLVP();
         ZEPPPConsole.msg("Erasing PGM Memory...");
         ZEPPPConsole.info("In some devices this may also erase all Config Words");
-        throwExceptionOnFailure(sendCommandWithByte(ZEPPP.ZEPPP_CMD_PGM_MEM_ERASE, picDevice.getDeviceCfg().getPgmEraseMode()), "Erase PGM Memory");
+        throwExceptionOnFailure(sendCommandWithByte(ZEPPP.ZEPPP_CMD_PGM_MEM_ERASE, picDevice.getDeviceCfg().getMemEraseMode()), "Erase PGM Memory");
     }
 
     public void eraseDataMem(PicDevice picDevice)  throws ZEPPPCommandException {
         resetLVP();
         ZEPPPConsole.msg("Erasing Data Memory...");
-        throwExceptionOnFailure(sendCommandWithByte(ZEPPP.ZEPPP_CMD_DATA_MEM_ERASE, picDevice.getDeviceCfg().getPgmEraseMode()), "Erase Data Memory");
+        throwExceptionOnFailure(sendCommandWithByte(ZEPPP.ZEPPP_CMD_DATA_MEM_ERASE, picDevice.getDeviceCfg().getMemEraseMode()), "Erase Data Memory");
     }
 
     public void chipErase(PicDevice picDevice)  throws ZEPPPCommandException {
         ZEPPPConsole.msg("Erasing CHIP Memory...");
-        if (picDevice.getDeviceCfg().getChipErase() == 0) {
-            ZEPPPConsole.info("Selected PIC does not support the CHIP Erase command. All memory areas will be erased separately.");
-            erasePgmAndConfigMemory(picDevice);
-            eraseDataMem(picDevice);
-        } else {
-            resetLVP();
-            selectConfigMemStart(0);
-            throwExceptionOnFailure(sendCommand(ZEPPP.ZEPPP_CMD_CHIP_ERASE), "Erase CHIP");
-        }
+        throwExceptionOnFailure(sendCommandWithByte(ZEPPP.ZEPPP_CMD_CHIP_ERASE, picDevice.getDeviceCfg().getChipErase()), "Erase CHIP");
     }
 
-
-    public void writePgmMem (PicDevice picDevice) throws IntelHexParsingException, ZEPPPCommandException {
+    public void writePgmMem (PicDevice picDevice) throws ZEPPPCommandException {
         HexBuffer pgmMem = picDevice.getProgramMem();
         int pgmMemSizeInWords = getMaxWrittenWords(pgmMem);
         byte writeSize = picDevice.getDeviceCfg().getPgmWriteSize();
-        byte eraseMode = picDevice.getDeviceCfg().getPgmEraseMode();
+        byte writeMode = picDevice.getDeviceCfg().getPgmWriteMode();
 
         resetLVP();
         ZEPPPConsole.msg("Writing PGM Memory...");
@@ -330,15 +324,10 @@ public class ZEPPPClient {
                 );
             } else {
                 throwExceptionOnFailure(
-                        sendPgmWriteCommand(writeSize, eraseMode, pgmMem, i, DATA_UNITS_PER_READWRITE),
+                        sendPgmWriteCommand(writeSize, writeMode, pgmMem, i, DATA_UNITS_PER_READWRITE),
                         String.format("Write PGM Memory block 0x%04x", i)
                 );
             }
-        }
-        if (writeSize == 1) {
-            ZEPPPConsole.info(VERIFICATION_SKIPPED);
-        }else {
-            verifyPgmMem(picDevice);
         }
     }
 
@@ -354,10 +343,9 @@ public class ZEPPPClient {
     public void writeDataMem (PicDevice picDevice) throws ZEPPPCommandException {
         HexBuffer dataMem = picDevice.getDataMem();
         int dataMemSizeInWords = dataMem.getBufferSize() / 2;
-        byte eraseMode = picDevice.getDeviceCfg().getPgmEraseMode();
+        byte dataWriteMode = picDevice.getDeviceCfg().getPgmWriteMode();
 
         resetLVP();
-
         ZEPPPConsole.msg("Writing Data Memory...");
         for (int i = 0; i < dataMemSizeInWords; i += DATA_UNITS_PER_READWRITE) {
             if (picDevice.isDataBlockEmpty(i, DATA_UNITS_PER_READWRITE)) {
@@ -367,49 +355,69 @@ public class ZEPPPClient {
                 );
             } else {
                 throwExceptionOnFailure(
-                        sendDataWriteCommand(eraseMode, dataMem, i, DATA_UNITS_PER_READWRITE),
+                        sendDataWriteCommand(dataWriteMode, dataMem, i, DATA_UNITS_PER_READWRITE),
                         String.format("Write Data Memory block 0x%04x", i)
                 );
             }
         }
-        ZEPPPConsole.info(VERIFICATION_SKIPPED);
     }
 
     public void writeUserIDs (PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException {
         byte writeSize = (byte)Math.min (picDevice.getDeviceCfg().getPgmWriteSize(), PicDevice.USER_IDS_COUNT );
-        byte eraseMode = picDevice.getDeviceCfg().getPgmEraseMode();
+        byte writeMode = picDevice.getDeviceCfg().getPgmWriteMode();
 
         ZEPPPConsole.msg("Writing User IDs...");
         selectConfigMemStart(0);
-        sendPgmWriteCommand(writeSize, eraseMode, picDevice.getUserIds(), 0, PicDevice.USER_IDS_COUNT);
-        if (writeSize < 2) {
-            ZEPPPConsole.info(VERIFICATION_SKIPPED);
-        } else {
-            verifyUserIDs(picDevice);
-        }
+        sendPgmWriteCommand(writeSize, writeMode, picDevice.getUserIds(), 0, PicDevice.USER_IDS_COUNT);
     }
 
     public void writeConfigWords (PicDevice picDevice) throws ZEPPPCommandException {
         int confWordsCount = picDevice.getDeviceCfg().getConfWords();
-        byte eraseMode = picDevice.getDeviceCfg().getPgmEraseMode();
+        byte writeMode = picDevice.getDeviceCfg().getPgmWriteMode();
 
         ZEPPPConsole.msg("Writing Config Words...");
         selectConfigMemStart(PicDevice.CONF_WORD_OFFSET);
 
-        sendPgmWriteCommand((byte)1, eraseMode, picDevice.getConfWords(), 0, confWordsCount);
+        sendPgmWriteCommand((byte)1, writeMode, picDevice.getConfWords(), 0, confWordsCount);
         if ((picDevice.getConfWords().getWord(0) & PicDevice.CONF_WORD_LVP_MASK) == 0) {
             ZEPPPConsole.info("Your code seems to disable Low-Voltage Programming. This won't be saved in PIC memory!");
         }
-        ZEPPPConsole.info(VERIFICATION_SKIPPED);
     }
 
     public void writeAll (PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException {
+        resetLVP();
         writeUserIDs(picDevice);
         writePgmMem(picDevice);
         writeDataMem(picDevice);
         // Write configuration last, because if code-protection is enabled we won't be able to
         // verify memory in the previous steps.
         writeConfigWords(picDevice);
+    }
+
+    public void programAll(PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException {
+        resetLVP();
+        chipErase(picDevice);
+        writeUserIDs(picDevice);
+        verifyUserIDs(picDevice);
+        writePgmMem(picDevice);
+        verifyPgmMem(picDevice);
+        writeDataMem(picDevice);
+        verifyDataMem(picDevice);
+        writeConfigWords(picDevice);
+        try {
+            verifyConfigWords(picDevice);
+        } catch (ZEPPPCommandException ex) {
+            ZEPPPConsole.info(ex.getMessage());
+            ZEPPPConsole.info("Verification can fail if CP was enabled, or the Conf. Word tried to disable LVP.");
+        }
+    }
+
+    public void verifyAll(PicDevice picDevice) throws ZEPPPCommandException, IntelHexParsingException{
+        resetLVP();
+        verifyUserIDs(picDevice);
+        verifyConfigWords(picDevice);
+        verifyPgmMem(picDevice);
+        verifyDataMem(picDevice);
     }
 
     public void selectConfigMemStart (int withOffSet) throws ZEPPPCommandException {
@@ -434,11 +442,10 @@ public class ZEPPPClient {
         return ZEPPP.sendCommand(this.comm, cmd + " " + HexFileParseUtils.hexByteString(byteParam));
     }
 
-    private ZEPPPResponse sendPgmWriteCommand (byte writeSize, byte eraseMode, HexBuffer wordBuffer, int startWordNdx, int numberOfWords)  {
+    private ZEPPPResponse sendPgmWriteCommand (byte writeSize, byte writeMode, HexBuffer wordBuffer, int startWordNdx, int numberOfWords)  {
         if (writeSize < 2) {
-            return sendPgmCmndWithByteAndBuffer (ZEPPP.ZEPPP_CMD_PGM_MEM_WRITE, eraseMode, wordBuffer, startWordNdx, numberOfWords);
+            return sendPgmCmndWithByteAndBuffer (ZEPPP.ZEPPP_CMD_PGM_MEM_WRITE, writeMode, wordBuffer, startWordNdx, numberOfWords);
         } else {
-            // Devices that support block write normally has eraseMode = 1
             return sendPgmCmndWithByteAndBuffer (ZEPPP.ZEPPP_CMD_PGM_MEM_BLOCKWRITE, writeSize, wordBuffer, startWordNdx, numberOfWords);
         }
     }
@@ -461,13 +468,13 @@ public class ZEPPPClient {
         return ZEPPP.sendCommand(this.comm, cmdStrBuilder.toString());
     }
 
-    private ZEPPPResponse sendDataWriteCommand (byte eraseMode, HexBuffer byteBuffer, int start, int numberOfBytes)  {
+    private ZEPPPResponse sendDataWriteCommand (byte writeMode, HexBuffer byteBuffer, int start, int numberOfBytes)  {
         StringBuilder cmdStrBuilder =  new StringBuilder();
         int bufferSize = byteBuffer.getBufferSize();
 
         cmdStrBuilder.append(ZEPPP.ZEPPP_CMD_DATA_MEM_WRITE);
         cmdStrBuilder.append(' ');
-        cmdStrBuilder.append(HexFileParseUtils.hexByteString(eraseMode));
+        cmdStrBuilder.append(HexFileParseUtils.hexByteString(writeMode));
 
         int limit = start + numberOfBytes < bufferSize ? numberOfBytes : bufferSize - start;
         for (int w = 0; w < limit; w++) {

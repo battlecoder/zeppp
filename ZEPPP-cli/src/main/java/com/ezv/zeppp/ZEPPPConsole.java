@@ -21,12 +21,12 @@ import static com.ezv.zeppp.ZEPPPCLICommand.CLICommandCode.*;
 
 public class ZEPPPConsole {
     public static final String ZEPPP_CLI_APP_NAME = "zeppp-cli";
-    public static final String ZEPPP_CLI_VERSION = "1.0.2";
+    public static final String ZEPPP_CLI_VERSION = "1.0.3";
 
     private static AppConfig programConfig = new AppConfig();
     private static ZEPPPClient zepppBridge = null;
     private static PicDevice picDevice = null;
-
+    private static boolean ignoreOutOfBounds = false;
     private static ArrayList<ZEPPPCLICommand> commandList;
     private static boolean initialized = false;
 
@@ -39,14 +39,17 @@ public class ZEPPPConsole {
         commandList = new ArrayList<>();
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_VERSION, "v", "version", null,
-                "Shows current CLI version."));
+                "Shows current CLI version and supported PIC devices."));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_COMM, "c", "comm-port", "<COMM PORT>",
-                "Selects the COMM port where the interface is plugged in, and attempts to establish connection."));
+                "Selects the COMM port where the interface is, and attempts to establish connection."));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_DEVICE, "d", "device", "<pic device>",
                 "Selects the PIC device. Must be set before most other operations. If not specified\n\t"+
                            "the interface will attempt to auto-detect the connected PIC Device."));
+
+        commandList.add(new ZEPPPCLICommand(CLI_COMMAND_IGNORE_OOB_ERROR,null, "ignore-bounds-error", null,
+                "Attempts to write to out of bound areas result in just a warning, and do not stop\n\texecution."));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_INPUT,"i", "input", "<filename>",
                  "Reads an Intel HEX file into the PIC memory buffer."));
@@ -75,7 +78,7 @@ public class ZEPPPConsole {
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_WRITE_CONF_WORDS,"wc", "write-conf-words", null,
                 "Writes CONFIG Words from the PIC memory buffer to the connected PIC device."));
 
-            commandList.add(new ZEPPPCLICommand(CLI_COMMAND_WRITE_USER_IDS,"wi", "write-user-ids", null,
+        commandList.add(new ZEPPPCLICommand(CLI_COMMAND_WRITE_USER_IDS,"wi", "write-user-ids", null,
                 "Writes User-defined IDs from the PIC memory buffer to the connected PIC device."));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_WRITE_EEPROM,"we", "write-eeprom", null,
@@ -110,7 +113,7 @@ public class ZEPPPConsole {
                            "IDs and CONFIG words, removing code protection if enabled."));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_PROGRAM, "p", "program", null,
-                "Shorthand for a full 'chip erase' followed by a 'write all' operation."));
+                "Shorthand for a 'chip erase' followed by the full set of write/verification operations"));
 
         commandList.add(new ZEPPPCLICommand(CLI_COMMAND_WAIT, null, "wait", "<milliseconds>",
                 "Waits a given amount of time before continuing. Useful when you need to wait before the next step.\n\t"+
@@ -206,23 +209,27 @@ public class ZEPPPConsole {
                 zepppBridge = new ZEPPPClient(trimValue);
                 return false;
 
+            case CLI_COMMAND_IGNORE_OOB_ERROR:
+                ignoreOutOfBounds = true;
+                return false;
+
             case CLI_COMMAND_INPUT:
-                requirePICDevice();
+                requireInterfaceAndPIC();
                 ZEPPPConsole.msg("Reading input Hex file: " + trimValue);
-                picDevice.loadFromHexFile(trimValue);
+                IntelHexPicHelper.loadFromHexFile(picDevice, trimValue, ignoreOutOfBounds);
                 return false;
 
             case CLI_COMMAND_OUTPUT:
-                requirePICDevice();
+                requireInterfaceAndPIC();
                 ZEPPPConsole.msg("Saving buffers to Hex file: " + trimValue);
-                picDevice.saveToHexFile(trimValue);
+                IntelHexPicHelper.saveToHexFile(picDevice, trimValue);
                 return false;
 
             case CLI_COMMAND_DEVICE:
                 requireZEPPPInterface();
                 if (!programConfig.setSelectedDevice(trimValue)) {
-                    ZEPPPConsole.critical(String.format("Unsupported device '%s'. Valid devices are: %s", trimValue, programConfig
-                            .getSupportedPICDevices().toString()));
+                    ZEPPPConsole.critical(String.format("Unsupported device '%s'. Valid devices are: %s", trimValue,
+                            programConfig.getSupportedPICDevices().toString()));
                 } else {
                     ZEPPPConsole.msg(String.format("Pic device '%s' selected", programConfig.getSelectedDevice().getDeviceName()));
                 }
@@ -232,10 +239,7 @@ public class ZEPPPConsole {
 
             case CLI_COMMAND_VERIFY_ALL:
                 requireInterfaceAndPIC();
-                zepppBridge.verifyUserIDs(picDevice);
-                zepppBridge.verifyConfigWords(picDevice);
-                zepppBridge.verifyPgmMem(picDevice);
-                zepppBridge.verifyDataMem(picDevice);
+                zepppBridge.verifyAll(picDevice);
                 break;
 
             case CLI_COMMAND_VERIFY_EEPROM:
@@ -305,10 +309,7 @@ public class ZEPPPConsole {
 
             case CLI_COMMAND_READ_ALL:
                 requireInterfaceAndPIC();
-                zepppBridge.readUserIDs (picDevice);
-                zepppBridge.readConfigWords (picDevice);
-                zepppBridge.readPgmMem (picDevice);
-                zepppBridge.readDataMem (picDevice);
+                zepppBridge.readAll(picDevice);
                 break;
 
             case CLI_COMMAND_ERASE_PGM_MEM:
@@ -329,8 +330,7 @@ public class ZEPPPConsole {
             case CLI_COMMAND_PROGRAM:
                 requireInterfaceAndPIC();
                 // Erase all, then write all.
-                zepppBridge.chipErase(picDevice);
-                zepppBridge.writeAll(picDevice);
+                zepppBridge.programAll(picDevice);
                 break;
 
             case CLI_COMMAND_WAIT:
@@ -349,8 +349,9 @@ public class ZEPPPConsole {
                 return false;
 
             case CLI_COMMAND_VERSION:
-                msg ("ZEPPP CLI version: " + ZEPPP_CLI_VERSION);
-                msg ("Supported ZEPPP Interface version: " + ZEPPPClient.ZEPPP_EXPECTED_VERSION);
+                ZEPPPConsole.msg ("ZEPPP CLI version: " + ZEPPP_CLI_VERSION);
+                ZEPPPConsole.msg ("Supported ZEPPP Interface version: " + ZEPPPClient.ZEPPP_EXPECTED_VERSION);
+                ZEPPPConsole.msg("Supported PIC devices: " + programConfig.getSupportedPICDevices().toString());
                 return false;
 
         }
@@ -393,16 +394,12 @@ public class ZEPPPConsole {
         msg ("\t" + String.format("%s -%s COM2 -%s 2000 -%s 16f877a -%s hex_file_with_eeprom_data.hex -%s", ZEPPP_CLI_APP_NAME, cmdStr(CLI_COMMAND_COMM), cmdStr(CLI_COMMAND_WAIT), cmdStr(CLI_COMMAND_DEVICE), cmdStr(CLI_COMMAND_INPUT), cmdStr(CLI_COMMAND_WRITE_EEPROM)));
     }
 
-    private static void requirePICDevice () throws ZEPPPCommandException, IntelHexParsingException {
+    private static void requireInterfaceAndPIC() throws ZEPPPCommandException, IntelHexParsingException {
+        requireZEPPPInterface();
         if (picDevice == null) {
             PICDeviceConfigEntry picCfg = zepppBridge.autodetectDevice(programConfig);
             picDevice = new PicDevice(picCfg);
         }
-    }
-
-    private static void requireInterfaceAndPIC() throws ZEPPPCommandException, IntelHexParsingException {
-        requireZEPPPInterface();
-        requirePICDevice();
     }
 
     private static void requireZEPPPInterface () throws ZEPPPCommandException {

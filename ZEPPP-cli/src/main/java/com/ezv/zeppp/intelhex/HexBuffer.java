@@ -86,4 +86,24 @@ public class HexBuffer {
         }
         return strBuilder.toString();
     }
+
+    public HexBuffer getHexBufferSubsetInLSB (int start, int sizeInWords) {
+        int remainingData =  getBufferSize() - start;
+        int realSizeInBytes = Math.min(sizeInWords*2, remainingData);
+
+        HexBuffer newBuffer = new HexBuffer(realSizeInBytes);
+        for (int i = 0; i < realSizeInBytes; i+=2) newBuffer.setWord(i, (short)getWord(start + i));
+        return newBuffer;
+    }
+    public boolean isMemAreaBlockEmpty (int wordStart, int wordCount, int emptyValue) {
+        int max = getBufferSize();
+        int start = wordStart*2;
+        int end = start + wordCount*2;
+        int limit = end < max ? end : max;
+
+        for (int offset = start; offset < limit; offset += 2) {
+            if (getWord(offset) != emptyValue) return false;
+        }
+        return true;
+    }
 }

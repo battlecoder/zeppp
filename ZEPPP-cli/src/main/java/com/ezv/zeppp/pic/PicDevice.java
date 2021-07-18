@@ -11,11 +11,7 @@ package com.ezv.zeppp.pic;
 // ################################################################################################################
 import com.ezv.zeppp.config.PICDeviceConfigEntry;
 import com.ezv.zeppp.intelhex.HexBuffer;
-import com.ezv.zeppp.intelhex.IntelHexFile;
-import com.ezv.zeppp.intelhex.IntelHexParsingException;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 public class PicDevice {
@@ -48,53 +44,18 @@ public class PicDevice {
         this.programMem = createWordHexBuffer(cfg.getPgmMemSize(), DEFAULT_MEM_CONTENT);
     }
 
-    public void loadFromHexFile (String filePath) throws IntelHexParsingException, IOException {
-        Map<Integer, HexBuffer> loadedData = null;
-
-        loadedData = IntelHexFile.load(filePath);
-        for (Map.Entry<Integer, HexBuffer> entry : loadedData.entrySet()) {
-            int baseAddress = entry.getKey();
-            HexBuffer dataBlock = entry.getValue();
-            for (int byteNdx = 0; byteNdx < dataBlock.getBufferSize(); byteNdx += 2) {
-                this.setWordAt((baseAddress + byteNdx), (short) dataBlock.getWord(byteNdx));
-            }
-        }
-    }
-
-    public void saveToHexFile (String filePath) throws IntelHexParsingException {
-        Map<Integer, HexBuffer> buffers = new HashMap<>();
-
-        // Separate program memory in chunks ----
-        addNonEmptyBlocks (buffers, programMem, 0, DEFAULT_MEM_CONTENT);
-        // Separate data memory in chunks, converted to word entries instead of bytes ----
-        addNonEmptyBlocks (buffers, dataMem, deviceCfg.getDataHexFileLogicalAddress()*2, DEFAULT_DATA_MEM_CONTENT);
-
-        buffers.put(2*deviceCfg.getConfMemAddress(), getHexBufferSubsetInLSB(userIds, 0, USER_IDS_COUNT));
-        buffers.put(2*(deviceCfg.getConfMemAddress() + CONF_WORD_OFFSET), getHexBufferSubsetInLSB(confWords, 0, deviceCfg.getConfWords()));
-        IntelHexFile.save(filePath, buffers);
-    }
-
-    private void addNonEmptyBlocks (Map<Integer, HexBuffer> destBufferMap, HexBuffer memArea, int baseAddress, int emptyValue) {
+    public void addNonEmptyBlocks (Map<Integer, HexBuffer> destBufferMap, HexBuffer memArea, int baseAddress, int emptyValue) {
         int memSizeInWords = memArea.getBufferSize() / 2;
 
         for (int wordIndex = 0; wordIndex < memSizeInWords; wordIndex += ENTRIES_PER_HEX_FILE_WHEN_SAVING) {
-            if (!isMemAreaBlockEmpty (memArea, wordIndex, ENTRIES_PER_HEX_FILE_WHEN_SAVING, emptyValue)) {
-                HexBuffer subset = getHexBufferSubsetInLSB(memArea,wordIndex * 2, ENTRIES_PER_HEX_FILE_WHEN_SAVING );
+            if (!memArea.isMemAreaBlockEmpty (wordIndex, ENTRIES_PER_HEX_FILE_WHEN_SAVING, emptyValue)) {
+                HexBuffer subset = memArea.getHexBufferSubsetInLSB(wordIndex * 2, ENTRIES_PER_HEX_FILE_WHEN_SAVING );
                 destBufferMap.put(baseAddress + wordIndex*2, subset);
             }
         }
     }
 
-    private HexBuffer getHexBufferSubsetInLSB (HexBuffer inBuffer, int start, int sizeInWords) {
-        int remainingData =  inBuffer.getBufferSize() - start;
-        int realSizeInBytes = Math.min(sizeInWords*2, remainingData);
-
-        HexBuffer newBuffer = new HexBuffer(realSizeInBytes);
-        for (int i = 0; i < realSizeInBytes; i+=2) newBuffer.setWord(i, (short)inBuffer.getWord(start + i));
-        return newBuffer;
-    }
-
-    private void setWordAt (int byteAddress, short word) throws IntelHexParsingException {
+    public boolean setWordAt (int byteAddress, short word) {
         int wordAddress = byteAddress / 2;
         PICDeviceConfigEntry cfg = this.deviceCfg;
 
@@ -111,11 +72,9 @@ public class PicDevice {
             this.programMem.setWord(byteAddress, word);
 
         } else {
-            throw new IntelHexParsingException(
-                    String.format("Memory address 0x%04x is not mapped to any memory space in the selected device (%s)",
-                            byteAddress, cfg.getDeviceName())
-            );
+            return false;
         }
+        return true;
     }
 
     private boolean isWithinAddressSpace (int addressToTry, int startAddress, int size) {
@@ -152,23 +111,11 @@ public class PicDevice {
     }
 
     public boolean isPgmBlockEmpty (int wordStart, int wordCount) {
-        return isMemAreaBlockEmpty (programMem, wordStart, wordCount, DEFAULT_MEM_CONTENT);
+        return programMem.isMemAreaBlockEmpty (wordStart, wordCount, DEFAULT_MEM_CONTENT);
     }
 
     public boolean isDataBlockEmpty (int wordStart, int wordCount) {
-        return isMemAreaBlockEmpty (dataMem, wordStart, wordCount, DEFAULT_DATA_MEM_CONTENT);
-    }
-
-    private boolean isMemAreaBlockEmpty (HexBuffer memArea, int wordStart, int wordCount, int emptyValue) {
-        int max = memArea.getBufferSize();
-        int start = wordStart*2;
-        int end = start + wordCount*2;
-        int limit = end < max ? end : max;
-
-        for (int offset = start; offset < limit; offset += 2) {
-            if (memArea.getWord(offset) != emptyValue) return false;
-        }
-        return true;
+        return dataMem.isMemAreaBlockEmpty (wordStart, wordCount, DEFAULT_DATA_MEM_CONTENT);
     }
 
 }

@@ -54,7 +54,9 @@ public class IntelHexRecord {
     }
 
     public static IntelHexRecord fromString(String line) throws IntelHexParsingException{
-        if (!line.startsWith(":")) throw new IntelHexParsingException ("IntelHexRecord definition expected to start with :");
+        if (!line.startsWith(":")) {
+            throw new IntelHexParsingException ("IntelHexRecord definition expected to start with :");
+        }
 
         int recordLen = (line.length()-1) / 2;
         HexBuffer recBytes = HexBuffer.fromString(line.substring(1));
