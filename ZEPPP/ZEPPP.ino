@@ -1,3 +1,5 @@
+#include "ZEPPP_icsp.h"
+
 /*############################################################################
  *##                                                                        ##
  *##                                  C O N F I G                           ##
@@ -10,42 +12,7 @@
 #define ZEPPP_VERSION_STRING    "1.0.1"
 #define ZEPPP_RELDATE_STRING    "20200715"
 
-/* Pin assignment *******************************/
-const int PGM_PIN  = 9;
-const int PGC_PIN  = 8;
-const int PGD_PIN  = 7;
-const int MCLR_PIN = 6;
-
-/* Timing and constants *************************/
-#define DELAY_HALFCLOCK_IN_US    2
-#define DELAY_SHORT_IN_US        5
-#define DELAY_LONG_IN_US         10
-#define DELAY_PGM_IN_MS          5
-#define DELAY_ERASE_IN_MS        6 // Based on the 16F6XX datasheet
-#define DELAY_ERASESETUP_IN_MS   8 // Based on the 16F87X (non-A) datasheet
-#define PIC_PGM_ROW              32 
 #define MAX_SERIAL_IN_BUFFER     PIC_PGM_ROW*5 + 10 
-
-/* ICSP Commands ********************************/
-#define CMD_LOAD_CONFIG          0b000000
-#define CMD_LOAD_PGM_MEM_DATA    0b000010
-#define CMD_LOAD_DAT_MEM_DATA    0b000011
-#define CMD_INCREMENT_ADDRESS    0b000110
-#define CMD_READ_PGM_MEM_DATA    0b000100
-#define CMD_READ_DAT_MEM_DATA    0b000101
-#define CMD_BEGIN_PGMERASE_CYCLE 0b001000
-#define CMD_BEGIN_PGMONLY_CYCLE  0b011000
-#define CMD_BULK_ERASE_PGM_MEM   0b001001
-#define CMD_BULK_ERASE_DAT_MEM   0b001011
-
-/* PIC16F87x Commands */
-#define CMD_BULK_ERASE_SETUP_1   0b000001
-#define CMD_BULK_ERASE_SETUP_2   0b000111
-
-/* PIC16F88/PIC16F87xA Commands */
-#define CMD_CHIP_ERASE           0b011111
-#define CMD_BEGIN_ERASE          0b001000 
-#define CMD_END_PROGRAMMING      0b010111 
 
 /* Serial Commands ******************************/
 typedef enum {
@@ -67,196 +34,25 @@ typedef enum {
 
 /* Serial command return codes ******************/
 typedef enum {
+  RET_ERR_VERIFICATION_FAILED = ICSP_ERR_VERIFICATION_FAILED,
+  RET_ERR_OUT_OF_RANGE = ICSP_ERR_OUT_OF_RANGE,
+  RET_OK = ICSP_OK,
   RET_ERR_SPACE_EXPECTED,
   RET_ERR_HEX_BYTE_EXPECTED,
   RET_ERR_HEX_WORD_EXPECTED,
-  RET_ERR_VERIFICATION_FAILED,
-  RET_ERR_OUT_OF_RANGE,
   RET_ERR_UNKNOWN_COMMAND,
   RET_ERR_NO_MEMORY_AREA_SELECTED,
-  RET_OK
-} ReturnCode;
+} ZEPPP_RET;
 
 /* Serial Buffer Handling ***********************/
 char serialBuffer[MAX_SERIAL_IN_BUFFER];
 byte inBufferPos = 0;
 byte bufferParsingPos = 0;
-int  wordBuffer[PIC_PGM_ROW]; 
 
 /* Serial command return strings ****************/
 #define RET_MSG_ERROR       Serial.print(F("ER: "))
 #define RET_MSG_OK          Serial.print(F("OK: "))
 
-/*############################################################################
- *##                                                                        ##
- *##                 L V P - S P E C I F I C   R O U T I N E S              ##
- *##                                                                        ##
- *############################################################################*/
-void lvp_enter_pgm_mode () {
-  /* Reset relevant signals */
-  pinMode (PGD_PIN, OUTPUT);
-  digitalWrite (PGD_PIN, LOW);
-  digitalWrite (PGC_PIN, LOW);
-
-  digitalWrite (PGM_PIN, LOW);
-  digitalWrite (MCLR_PIN, LOW);
-
-  /* Now we bring them to their default values again */
-  digitalWrite (PGM_PIN, HIGH);
-  delayMicroseconds(DELAY_SHORT_IN_US);
-  digitalWrite (MCLR_PIN, HIGH);
-  delayMicroseconds(DELAY_SHORT_IN_US);
-}
-
-void lvp_exit_pgm_mode() {
-  digitalWrite (MCLR_PIN, LOW);
-  pinMode (PGD_PIN, INPUT);
-  delayMicroseconds(DELAY_LONG_IN_US);
-  digitalWrite (PGM_PIN, LOW);
-  digitalWrite (MCLR_PIN, HIGH);
-}
-
-void reset_lvp(){
-  lvp_enter_pgm_mode();
-}
-/*############################################################################
- *##                                                                        ##
- *##           I C S P   B I T   B A N G I N G   R O U T I N E S            ##
- *##                                                                        ##
- *############################################################################*/
-inline void clock_high() {
-  delayMicroseconds(DELAY_HALFCLOCK_IN_US);
-  digitalWrite (PGC_PIN, HIGH);
-  delayMicroseconds(DELAY_HALFCLOCK_IN_US);
-}
-
-inline void clock_low() {
-  delayMicroseconds(DELAY_HALFCLOCK_IN_US);
-  digitalWrite (PGC_PIN, LOW);
-  delayMicroseconds(DELAY_HALFCLOCK_IN_US);
-}
-
-void icsp_send_byte (byte data, byte bits) {
-  byte d = data;
-
-  pinMode (PGD_PIN, OUTPUT);
-  for (byte b = 0; b < bits; b++){
-    clock_high();
-    digitalWrite (PGD_PIN, d & 1);
-    clock_low();
-    d >>= 1;
-  }
-}
-
-word icsp_recv_word () {
-  word w = 0;
-  word mask = 1;
-  pinMode (PGD_PIN, INPUT);
-  delayMicroseconds(DELAY_SHORT_IN_US);
-
-  // Data is 14 bits. With a start and stop bit (16 bit total). LSB first
-  for (byte b = 0; b < 16; b++){
-    clock_high();
-    if (digitalRead(PGD_PIN)) w |= mask;
-    mask <<= 1;
-    clock_low();
-  }
-  return (w>>1) & 0b11111111111111;
-}
-
-void icsp_send_cmd (byte cmd) {
-  // Command is 6 bits
-  icsp_send_byte (cmd, 6);
-  delayMicroseconds(DELAY_SHORT_IN_US);
-}
-
-void icsp_load_data (word data) {
-  // Data is 14 bits. With a start and stop bit. LSB first
-  icsp_send_byte ((byte)((data<<1) & 0xfe), 8);
-  icsp_send_byte ((byte)((data>>7) & 0x7f), 8);
-  delayMicroseconds(DELAY_LONG_IN_US);
-}
-
-/*############################################################################
- *##                                                                        ##
- *##                         I C S P   C O M M A N D S                      ##
- *##                                                                        ##
- *############################################################################*/
-word read_pgm_mem () {
-  icsp_send_cmd (CMD_READ_PGM_MEM_DATA);
-  delayMicroseconds(DELAY_SHORT_IN_US);
-  return icsp_recv_word();
-}
-
-word read_data_mem () {
-  icsp_send_cmd (CMD_READ_DAT_MEM_DATA);
-  delayMicroseconds(DELAY_SHORT_IN_US);
-  return icsp_recv_word ();
-}
-
-void load_pgm_mem (word w) {
-  icsp_send_cmd (CMD_LOAD_PGM_MEM_DATA);
-  icsp_load_data (w);
-}
-
-void load_data_mem (word w) {
-  icsp_send_cmd (CMD_LOAD_DAT_MEM_DATA);
-  icsp_load_data (w);
-}
-
-void load_config_mem (word w) {
-  icsp_send_cmd (CMD_LOAD_CONFIG);
-  icsp_load_data (w);
-}
-
-void increment_addr () {
-  icsp_send_cmd (CMD_INCREMENT_ADDRESS);
-  delayMicroseconds(DELAY_SHORT_IN_US);
-}
-
-void bulk_erase_pgm_mem () {
-  icsp_send_cmd (CMD_BULK_ERASE_PGM_MEM);
-  delayMicroseconds(DELAY_LONG_IN_US);
-}
-
-void bulk_erase_data_mem () {
-  icsp_send_cmd (CMD_BULK_ERASE_DAT_MEM);
-  delayMicroseconds(DELAY_LONG_IN_US);
-}
-
-void chip_erase () {
-  icsp_send_cmd (CMD_CHIP_ERASE);
-  delay(DELAY_PGM_IN_MS);
-}
-
-void program_only_cycle () { 
-  icsp_send_cmd (CMD_BEGIN_PGMONLY_CYCLE); 
-  delay(DELAY_PGM_IN_MS); 
-} 
-
-void erase_and_program_cycle () {
-  icsp_send_cmd (CMD_BEGIN_PGMERASE_CYCLE);
-  delay(DELAY_PGM_IN_MS);
-}
-
-void end_programming(){ 
-  icsp_send_cmd (CMD_END_PROGRAMMING); 
-} 
- 
-void begin_erase(){ 
-  icsp_send_cmd (CMD_BEGIN_ERASE); 
-  delay(DELAY_PGM_IN_MS); 
-} 
-
-void bulk_erase_setup_1(){ 
-  icsp_send_cmd (CMD_BULK_ERASE_SETUP_1); 
-  delay(DELAY_PGM_IN_MS); 
-} 
-
-void bulk_erase_setup_2(){ 
-  icsp_send_cmd (CMD_BULK_ERASE_SETUP_2);
-  delay(DELAY_PGM_IN_MS); 
-} 
 
 /*############################################################################
  *##                                                                        ##
@@ -366,200 +162,20 @@ void read_and_print_data_mem_words (byte sze){
   Serial.write('\n');
 }
 
-ReturnCode read_console_into_word_buffer (byte *count_dest) { 
+ZEPPP_RET read_console_into_word_buffer (byte *count_dest) { 
   byte count = 0; 
   word w; 
+  byte wordbuffer_size = pgm_buffer_size(); 
  
   while (serial_parse_match(' ')){ 
-    if (count > PIC_PGM_ROW) return RET_ERR_OUT_OF_RANGE; 
+    if (count > wordbuffer_size) return RET_ERR_OUT_OF_RANGE; 
     if (!serial_parse_getword(&w, 4)) return RET_ERR_HEX_WORD_EXPECTED; 
-    wordBuffer[count] = w; 
+    set_pgm_buffer(count, w); 
     count++; 
   }
   *count_dest = count;
   return RET_OK; 
-} 
-
-/*############################################################################
- *##                                                                        ##
- *##                      HIGHER-LEVEL OPERATIONS                           ##
- *##                                                                        ##
- *############################################################################*/
-void increase_addr_n(byte n){
-  byte x;
-  for (x = 0; x < n; x++) increment_addr();
 }
-
-
-ReturnCode oper_erase_pgm_mem (byte eraseMode){
-  // So far only two modes are supported for Pgm Erase: 
-  // 0: Bulk erase suffices
-  // 1: Begin Erase is required after Bulk Erase
-  // 2: Load PGM Data + Bulk Setup 1 + 2 sequence
-  if (eraseMode > 2) return RET_ERR_OUT_OF_RANGE; 
-
-  reset_lvp();
-  if (eraseMode == 0) {
-    load_pgm_mem (0x3fff);
-    bulk_erase_pgm_mem();
-    delay(DELAY_ERASE_IN_MS);
-  }else if (eraseMode == 1){
-    load_pgm_mem (0x3fff);
-    bulk_erase_pgm_mem();
-    begin_erase();
-  } else {
-    load_pgm_mem(0x3fff);
-    bulk_erase_setup_1();
-    bulk_erase_setup_2();
-    begin_erase();
-    delay(DELAY_ERASESETUP_IN_MS);
-    bulk_erase_setup_1();
-    bulk_erase_setup_2();
-  }
-  reset_lvp();
-  return RET_OK;
-}
-
-ReturnCode oper_erase_data_mem (byte eraseMode){
-  // So far only two modes are supported for Data Erase:
-  // 0: (Bulk erase suffices)
-  // 1: Begin Erase is required after Bulk Erase
-  // 2: Load Data + Bulk Setup 1 + 2 sequence
-  if (eraseMode > 2) return RET_ERR_OUT_OF_RANGE; 
-
-  reset_lvp();
-  if (eraseMode == 0){
-    bulk_erase_data_mem();
-    delay(DELAY_ERASE_IN_MS);
-  }else if (eraseMode == 1){
-    bulk_erase_data_mem();
-    begin_erase();
-  }else {
-    load_data_mem(0x3fff);
-    bulk_erase_setup_1();
-    bulk_erase_setup_2();
-    begin_erase();
-    delay(DELAY_ERASESETUP_IN_MS);
-    bulk_erase_setup_1();
-    bulk_erase_setup_2();
-  }
-  reset_lvp();
-  return RET_OK;
-}
-
-
-ReturnCode oper_chip_erase (byte eraseMode){
-  // So far only three modes are supported for Chip Erase:
-  // 0: Erase PGM and Data Memory manually using Bulk Erase commands (used by devices like the 6x8A. They don't have a proper CHIP Erase command
-  // 1: Use Chip Erase command (11111)
-  // 2: Use Load Config + Bulk Erase Setup 1 and 2 sequence
-  if (eraseMode > 2) return RET_ERR_OUT_OF_RANGE; 
-
-  reset_lvp();
-  if (eraseMode == 0){
-    load_config_mem(0x3fff);
-    bulk_erase_pgm_mem();
-    delay(DELAY_ERASE_IN_MS);
-    bulk_erase_data_mem();
-    delay(DELAY_ERASE_IN_MS);
-  } else if (eraseMode == 1){
-    load_config_mem(0x3fff);
-    chip_erase();
-  } else {
-    load_config_mem(0x3fff);
-    increase_addr_n(7);
-    bulk_erase_setup_1();
-    bulk_erase_setup_2();
-    begin_erase();
-    delay(DELAY_ERASESETUP_IN_MS);
-    bulk_erase_setup_1();
-    bulk_erase_setup_2();
-
-    // This "chip erase"algorithm will only clear the EEPROM DATA if CP was
-    // enabled. If it wasn't, it will just perform a bulk erase of PGM + CONFIG.
-    // So to make it fully "chip erase" we will also perform a bulk data erase
-    // separately.
-    oper_erase_data_mem (2);
-  }
-  reset_lvp();
-  return RET_OK;
-}
-
-ReturnCode oper_write_pgm_mem_from_buffer(byte count, byte writeMode){
-  byte b;
-  word w;
-  if (writeMode == 0) {
-    for (b = 0; b < count; b++) {
-      w = wordBuffer[b];
-      load_pgm_mem(w);
-      erase_and_program_cycle();
-      if (read_pgm_mem() != w) return RET_ERR_VERIFICATION_FAILED;
-      increment_addr();
-    }
-  }else {
-    for (b = 0; b < count; b++) {
-      w = wordBuffer[b];
-      load_pgm_mem(w);
-      program_only_cycle();
-      end_programming();
-      if (read_pgm_mem() != w) return RET_ERR_VERIFICATION_FAILED;
-      increment_addr();
-    }
-  }
-  return RET_OK;
-}
-
-ReturnCode oper_write_data_from_buffer(byte count, byte writeMode){
-  byte b;
-  word w;
-  if (writeMode == 0){
-    for (b = 0; b < count; b++) {
-      w = wordBuffer[b];
-      load_data_mem(w);
-      erase_and_program_cycle();
-      if ((read_data_mem() & 0xff) != (w & 0xff)) return RET_ERR_VERIFICATION_FAILED;
-      increment_addr();
-    }
-  } else {
-    load_data_mem(0xff);
-    for (b = 0; b < count; b ++) { 
-      begin_erase(); 
-      end_programming();
-      w = wordBuffer[b]; 
-      load_data_mem(w);
-      program_only_cycle();
-      end_programming();
-      if ((read_data_mem() & 0xff) != (w & 0xff)) return RET_ERR_VERIFICATION_FAILED;
-      increment_addr(); 
-    }
-  }
-  return RET_OK;
-}
-
-ReturnCode oper_write_pgm_block_from_buffer(byte count, byte writeSize){
-  byte b, n;
-  word w;
-
-  load_pgm_mem(0x3fff);
-  begin_erase(); 
-  end_programming(); 
-  for (b = 0; b < count; b += writeSize) { 
-    for (n = 0; n < writeSize; n++){ 
-      if (b + n < count) { 
-        w = wordBuffer[b + n]; 
-      }else { 
-        w = 0x3fff; 
-      }
-      load_pgm_mem(w); 
-      if (n < writeSize - 1) increment_addr(); 
-    }
-    program_only_cycle(); 
-    end_programming(); 
-    increment_addr(); 
-  }
-  return RET_OK;
-}
-
 /*############################################################################
  *##                                                                        ##
  *##             S E R I A L   C O M M A N D S  P A R S I N G               ##
@@ -584,7 +200,7 @@ ZEPPPCommand getCommand (char *buffer){
   return ZEPPP_CMD_UNKNOWN;
 }
 
-ReturnCode execute_serial_cmd() {
+ZEPPP_RET execute_serial_cmd() {
   char ret;
   byte count;
   byte writeSize, eraseMode, writeMode;
@@ -717,7 +333,7 @@ ReturnCode execute_serial_cmd() {
     case ZEPPP_CMD_PGM_MEM_BLOCK_WRITE:
       if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
       if (!serial_parse_getbyte(&writeSize)) return RET_ERR_HEX_BYTE_EXPECTED;
-      if (writeSize < 2 || writeSize > PIC_PGM_ROW) return RET_ERR_OUT_OF_RANGE;
+      if (writeSize < 2 || writeSize > pgm_buffer_size()) return RET_ERR_OUT_OF_RANGE;
 
       // Negative values are error codes.
       ret = read_console_into_word_buffer(&count);
@@ -768,7 +384,7 @@ ReturnCode execute_serial_cmd() {
 }
 
 void parse_serial_buff() {
-  ReturnCode ret = execute_serial_cmd();
+  ZEPPP_RET ret = execute_serial_cmd();
 
   if (ret != RET_OK) {
     RET_MSG_ERROR;

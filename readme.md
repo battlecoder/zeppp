@@ -58,7 +58,8 @@ Nothing too exciting. It basically does the "java -jar zeppp-cli.jar" part for y
 
 ## USING THE CLI
 
-You can run the CLI without parameters to see the available options, but here are some examples of what you can do with it:
+You can run the CLI without parameters to see the available options. All the operations that you perform will be done in the order they appear in the command line, so you can chain multiple operations together.
+Here are some examples of what you can do with it:
 
 **Example 1**
 > zeppp-cli -c COM3 -i blink.hex -p
@@ -85,9 +86,9 @@ Again, ZEPPP interface is assumed to be at COM3, the CLI autodetects the connect
 ZEPPP at COM3, The CLI will autodetect the connected PIC device and will read the contents from an hex file (that we presumably burned into the PIC beforehand). Then it will read and verify all the memory areas from the physical PIC, checking that they match the contents of the HEX file (-va = Verify All).
 
 **Example 5**
-> zeppp-cli -c COM3 -wait 2000 -d 16f628a -i file_with_only_eeprom_data.hex -pe
+> zeppp-cli -c COM3 -wait 2000 -d 16f628a -i file_with_only_eeprom_data.hex -we
 
-A more complicated example: ZEPPP firmware is in COM3 and we need to wait the 2 seconds before sending commands because we are using an Arduino Uno. After the pause, we tell the CLI that we expect a 16F628A (this will check the connected PIC and will refuse to continue if a different PIC is found), and then we read an hex file that only contains eeprom data, which we will proceed to program into the PIC without touching other memory areas (-pe = Program EEPROM only).
+A more complicated example: ZEPPP firmware is in COM3 and we need to wait the 2 seconds before sending commands because we are using an Arduino Uno. After the pause, we tell the CLI that we expect a 16F628A (this will check the connected PIC and will refuse to continue if a different PIC is found), and then we read an hex file that only contains eeprom data, which we will proceed to program into the PIC without touching other memory areas (-we = Write EEPROM only).
 
 
 ## BUILDING THE CLI FROM SOURCE CODE
