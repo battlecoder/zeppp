@@ -6,6 +6,7 @@ The name of this project is a homage to the first PIC programmer I used: **James
 
 Currently ZEPPP supports the following PIC devices:
 * 16F87, 16F88
+* 16F627, 16F628
 * 16F627A, 16F628A, 16F648A
 * 16F873A, 16F874A, 16F876A, 16F877A
 * 16F870, 16F871, 16F872, 16F873, 16F874, 16F876, 16F877
@@ -32,7 +33,7 @@ Since this is a ICSP programmer you need to connect your Arduino (with the ZEPPP
 
 Unless you are targetting a PIC board with an already mounted ICSP header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal. The following table shows the pins that should be connected depending on the PIC device family, with the current version of the firmware:
 
-| Arduino | ICSP Signal | PIC 16F6xxA  | PIC 16F87/88 | PIC 16F87x(A)| PIC 16F88X   |
+| Arduino | ICSP Signal | PIC 16F6xx   | PIC 16F87/88 | PIC 16F87x(A)| PIC 16F88X   |
 | ------- | ----------- | ------------ | ------------ | ------------ | ------------ |
 | D9      | PGM (6)     | RB4 (Pin 10) | RB3 (Pin 9)  | RB3 (Pin 36) | RB3 (Pin 36) |
 | D8      | PGC (5)     | RB6 (Pin 12) | RB6 (Pin 12) | RB6 (Pin 39) | RB6 (Pin 39) |

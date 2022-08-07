@@ -29,6 +29,36 @@ public class AppConfig {
 
     private void add16F6xxDevices () {
         addSupportedPIC (
+                new PICDeviceConfigEntry("16f627")
+                        .withDataSize(128)
+                        .withPgmMemSize(1024)
+                        .withDeviceId(0b000111101)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
+                        .withPgmWriteSize((byte)1)
+        );
+
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f628")
+                        .withDataSize(128)
+                        .withPgmMemSize(2048)
+                        .withDeviceId(0b000111110)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
+                        .withPgmWriteSize((byte)1)
+        );
+
+        addSupportedPIC (
                 new PICDeviceConfigEntry("16f627a")
                         .withDataSize(128)
                         .withPgmMemSize(1024)
