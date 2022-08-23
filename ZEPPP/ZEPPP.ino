@@ -42,7 +42,9 @@ typedef enum {
   RET_ERR_HEX_WORD_EXPECTED,
   RET_ERR_UNKNOWN_COMMAND,
   RET_ERR_NO_MEMORY_AREA_SELECTED,
-} ZEPPP_RET;
+} ZEPPP_RET_ENUM;
+
+#define ZEPPP_RET char
 
 /* Serial Buffer Handling ***********************/
 char serialBuffer[MAX_SERIAL_IN_BUFFER];
@@ -130,6 +132,7 @@ bool serial_parse_getword (word *dest, byte maxDigits) {
     bufferParsingPos += 1;
     digit = hex_digit_val(serialBuffer[bufferParsingPos]);
   }
+  return true;
 }
 
 bool serial_parse_getbyte (byte *dest) {
