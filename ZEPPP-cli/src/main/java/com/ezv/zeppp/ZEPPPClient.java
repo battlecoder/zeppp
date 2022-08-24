@@ -21,7 +21,7 @@ import com.ezv.zeppp.pic.PicDevice;
 
 public class ZEPPPClient {
     public static final int DATA_UNITS_PER_READWRITE        = 32;
-    public static final String ZEPPP_EXPECTED_VERSION      = "1.0.1";
+    public static final String ZEPPP_EXPECTED_VERSION      = "1.0.2";
     public static final int ZEPPP_BAUD_RATE                = 115200;
 
     CommPort comm = null;
