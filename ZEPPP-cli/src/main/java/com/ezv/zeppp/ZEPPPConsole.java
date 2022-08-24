@@ -21,7 +21,7 @@ import static com.ezv.zeppp.ZEPPPCLICommand.CLICommandCode.*;
 
 public class ZEPPPConsole {
     public static final String ZEPPP_CLI_APP_NAME = "zeppp-cli";
-    public static final String ZEPPP_CLI_VERSION = "1.0.3";
+    public static final String ZEPPP_CLI_VERSION = "1.0.4-SNAPSHOT";
 
     private static AppConfig programConfig = new AppConfig();
     private static ZEPPPClient zepppBridge = null;

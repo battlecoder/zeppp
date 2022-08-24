@@ -4,13 +4,19 @@
 
 The name of this project is a homage to the first PIC programmer I used: **James Padfield**'s "Enhanced NOPPP", a modified version of the classic **NOPPP** (No-Parts PIC Programmer) originally designed by **Michael Covington**. I built mine in the early 2000's and was the tool I used to program PICs for quite a while.
 
-Currently ZEPPP supports the following PIC devices:
+Currently ZEPPP supports the following PIC devices, being able to program PGM, CONFIG, and EEPROM areas:
+
 * 16F87, 16F88
+* 16F627, 16F628 *(1)*
 * 16F627A, 16F628A, 16F648A
 * 16F873A, 16F874A, 16F876A, 16F877A
 * 16F870, 16F871, 16F872, 16F873, 16F874, 16F876, 16F877
+* 16F882, 16F883, 16F884, 16F886, 16F887 *(2)*
 
-And can work with all the memory areas from the supported PICs (Program memory, EEPROM, Config words and User IDs).
+*(1)* User-reported as working.\
+*(2)* Calibration word and PGM block writes not yet supported in this family of microcontrollers.
+
+
 
 ## LICENSE
 Both the firmware and the Command-Line utility are licensed under the MIT License.
@@ -28,16 +34,20 @@ Since this is a ICSP programmer you need to connect your Arduino (with the ZEPPP
 
 Unless you are targetting a PIC board with an already mounted ICSP header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal. The following table shows the pins that should be connected depending on the PIC device family, with the current version of the firmware:
 
-| Arduino | ICSP Signal | PIC 16F6xxA  | PIC 16F87/88 | PIC 16F87x(A)|
-| ------- | ----------- | ------------ | ------------ | ------------ |
-| D9      | PGM (6)     | RB4 (Pin 10) | RB3 (Pin 9)  | RB3 (Pin 36) |
-| D8      | PGC (5)     | RB6 (Pin 12) | RB6 (Pin 12) | RB6 (Pin 39) |
-| D7      | PGD (4)     | RB7 (Pin 13) | RB7 (Pin 13) | RB7 (Pin 40) |
-| D6      | MCLR (1)    | RA5 (Pin 4)  | RA5 (Pin 4)  | MCLR (Pin 1) |
-| GND     | Ground (3)  | Vss (Pin 5)  | Vss (Pin 5)  | Vss (12, 31) |
+| Arduino | ICSP Signal | PIC 16F6xx   | PIC 16F87/88 | PIC 16F87x(A)| PIC 16F88X   |
+| ------- | ----------- | ------------ | ------------ | ------------ | ------------ |
+| D9      | PGM (6)     | RB4 (Pin 10) | RB3 (Pin 9)  | RB3 (Pin 36) | RB3 (Pin 36) |
+| D8      | PGC (5)     | RB6 (Pin 12) | RB6 (Pin 12) | RB6 (Pin 39) | RB6 (Pin 39) |
+| D7      | PGD (4)     | RB7 (Pin 13) | RB7 (Pin 13) | RB7 (Pin 40) | RB7 (Pin 40) |
+| D6      | MCLR (1)    | RA5 (Pin 4)  | RA5 (Pin 4)  | MCLR (Pin 1) | MCLR (Pin 1) |
+| GND     | Ground (3)  | Vss (Pin 5)  | Vss (Pin 5)  | Vss (12, 31) | Vss (12, 31) |
+
+---
+> **_NOTE:_** 
+Your target PIC also needs to be connected to power (Its VDD pin/s must be getting their operational voltage, which is most likely going to be 5V). You can get away with using your Arduino's 5V pin for that if the PIC you want to program is not connected to anything else.
+---
 
 As briefly mentioned before, if your target board has a proper ICSP connector, you would need connect the Arduino pins to the corresponding signals on the ICSP header, but bear in mind that if the ICSP connector on your board does not support Low-Voltage Programming (LVP), it will most likely lack the "PGM" signal, and you won't be able to use this programmer.
-Your target PIC also needs to be connected to power (Its VDD pin/s must be getting their operational voltage, which is most likely going to be 5V). You can get away with using your Arduino's 5V pin for that if the PIC you want to program is not connected to anything else.
 
 
 ## COMMAND-LINE UTILITY
@@ -61,6 +71,11 @@ Nothing too exciting. It basically does the "java -jar zeppp-cli.jar" part for y
 You can run the CLI without parameters to see the available options. All the operations that you perform will be done in the order they appear in the command line, so you can chain multiple operations together.
 Here are some examples of what you can do with it:
 
+---
+> **_NOTE:_**  Most Arduino variants equipped with a USB-Serial driver IC for programming (Arduino Uno, Nano, etc) need the **-wait** parameter with at least a delay of 2 seconds after the COM port is selected. This is because they reset the microcontroller when a connection is eastablished, and ZEPPP-CLI will need to wait before attempting to communicate with the firmware. The [Arduino Pro Mini](https://www.arduino.cc/en/pmwiki.php?n=Main/ArduinoBoardProMini) (The one **without** an on-board USB Serial IC, that needs to be manually reset with push-button when programmed) is the only Arduino I've tested so far that doesn't need this, because it doesn't auto-reset on serial connections.
+You may need to add or remove the **-wait** flag from the following examples depending on the Arduino board you are using.
+---
+
 **Example 1**
 > zeppp-cli -c COM3 -i blink.hex -p
 
@@ -70,10 +85,6 @@ This tells the CLI that the Arduino with the ZEPPP firmware is on COM3, then loa
 > zeppp-cli -c COM3 -wait 2000 -i blink.hex -p
 
 Same as before but we are using an Arduino that resets itself when a serial connection is established, so we need to wait 2 seconds (2000 ms) before trying to send any command.
-
----
-> **_NOTE:_**  Most Arduino variants equipped with a USB-Serial driver for programming (Arduino Uno, Nano, etc) need the **-wait** parameter with at least a delay of 2 seconds after the COM port is selected. This is because they automatically reset the microcontroller when a connection is eastablished to talk to the bootloader. The [Arduino Pro Mini](https://www.arduino.cc/en/pmwiki.php?n=Main/ArduinoBoardProMini) (The one without on-board USB Serial IC, that needs to be manually reset via push-button when programmed) is the only Arduino I've tested so far that doesn't need this, because it doesn't auto-reset on serial connections.
----
 
 **Example 3**
 > zeppp-cli -c COM3 -ra -o full_pic_dump.hex

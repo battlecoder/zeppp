@@ -115,7 +115,7 @@ Notes:
  Depending on the PIC device you may need to use either:
    Mode 0: Send a standalone 'Bulk Erase' command.
    Mode 1: Send a 'Bulk Erase' followed by 'Begin Erase'
-   Mode 2: Load PGM Data + Bul Erase Setup 1 + 2 sequence
+   Mode 2: Load PGM Data + Bulk Erase Setup 1 + 2 sequence
 
 
 -------------------------------

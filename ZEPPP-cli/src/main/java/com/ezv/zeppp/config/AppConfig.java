@@ -9,25 +9,55 @@ package com.ezv.zeppp.config;
 // ## Author: Elias Zacarias                                                                                     ##
 // ##                                                                                                            ##
 // ################################################################################################################
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class AppConfig {
     PICDeviceConfigEntry selectedDevice;
-    private HashMap<String, PICDeviceConfigEntry> supportedPICs;
+    private List<PICDeviceConfigEntry> supportedPICs;
 
     public AppConfig () {
-        this.supportedPICs = new HashMap<>();
+        this.supportedPICs = new ArrayList<>();
         this.selectedDevice = null;
 
         add16F6xxDevices();
         add16F87xDevices();
         add16F87xADevices();
         add16F8xDevices();
+        add16F88xDevices();
     }
 
     private void add16F6xxDevices () {
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f627")
+                        .withDataSize(128)
+                        .withPgmMemSize(1024)
+                        .withDeviceId(0b000111101)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
+                        .withPgmWriteSize((byte)1)
+        );
+
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f628")
+                        .withDataSize(128)
+                        .withPgmMemSize(2048)
+                        .withDeviceId(0b000111110)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
+                        .withPgmWriteSize((byte)1)
+        );
+
         addSupportedPIC (
                 new PICDeviceConfigEntry("16f627a")
                         .withDataSize(128)
@@ -275,8 +305,88 @@ public class AppConfig {
         );
     }
 
+    private void add16F88xDevices () {
+        // Pending for this family of devices:
+        // - working pgm block writes
+        // - calibration word
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f882")
+                        .withDataSize(128)
+                        .withPgmMemSize(2048)
+                        .withDeviceId(0b100000000)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
+                        .withPgmWriteSize((byte)1)
+        );
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f883")
+                        .withDataSize(256)
+                        .withPgmMemSize(4096)
+                        .withDeviceId(0b100000001)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
+                        .withPgmWriteSize((byte)1)
+        );
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f884")
+                        .withDataSize(256)
+                        .withPgmMemSize(4096)
+                        .withDeviceId(0b100000010)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
+                        .withPgmWriteSize((byte)1)
+        );
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f886")
+                        .withDataSize(256)
+                        .withPgmMemSize(8192)
+                        .withDeviceId(0b100000011)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
+                        .withPgmWriteSize((byte)1)
+        );
+        addSupportedPIC (
+                new PICDeviceConfigEntry("16f887")
+                        .withDataSize(256)
+                        .withPgmMemSize(8192)
+                        .withDeviceId(0b100000100)
+                        .withConfMemAddress(0x2000)
+                        .withConfWords(1)
+                        .withDataHexFileLogicalAddress(0x2100)
+                        .withDeviceIdRevisionBits(5)
+                        .withChipErase((byte)0)
+                        .withPgmWriteMode((byte)0)
+                        .withMemEraseMode((byte)0)
+                        .withPgmWriteSize((byte)1)
+        );
+    }
+
+    private PICDeviceConfigEntry findConfigByDeviceName(String deviceName) {
+        return this.supportedPICs.stream().filter(p -> p.getDeviceName().equalsIgnoreCase(deviceName)).findFirst().orElse(null);
+    }
+
     public boolean setSelectedDevice (String name) {
-        this.selectedDevice = this.supportedPICs.get(name.toLowerCase());
+        this.selectedDevice = findConfigByDeviceName(name);
         return this.selectedDevice != null;
     }
 
@@ -285,16 +395,15 @@ public class AppConfig {
     }
 
     public void addSupportedPIC (PICDeviceConfigEntry config) {
-        this.supportedPICs.put(config.getDeviceName(), config);
+        this.supportedPICs.add(config);
     }
 
-    public Set<String> getSupportedPICDevices () {
-        return this.supportedPICs.keySet();
+    public List<String> getSupportedPICDevices () {
+        return this.supportedPICs.stream().map(p -> p.getDeviceName()).collect(Collectors.toList());
     }
 
     public PICDeviceConfigEntry getDeviceByFullIdResponse (int id) {
-        for (Map.Entry<String, PICDeviceConfigEntry> entry : this.supportedPICs.entrySet()) {
-            PICDeviceConfigEntry picDevice = entry.getValue();
+        for (PICDeviceConfigEntry picDevice : this.supportedPICs) {
             if (id >> picDevice.getDeviceIdRevisionBits() == picDevice.getDeviceId() ) return picDevice;
         }
         return null;
