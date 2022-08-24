@@ -4,17 +4,18 @@
 
 The name of this project is a homage to the first PIC programmer I used: **James Padfield**'s "Enhanced NOPPP", a modified version of the classic **NOPPP** (No-Parts PIC Programmer) originally designed by **Michael Covington**. I built mine in the early 2000's and was the tool I used to program PICs for quite a while.
 
-Currently ZEPPP supports the following PIC devices:
+Currently ZEPPP supports the following PIC devices, being able to program PGM, CONFIG, and EEPROM areas:
+
 * 16F87, 16F88
-* 16F627, 16F628
+* 16F627, 16F628 *(1)*
 * 16F627A, 16F628A, 16F648A
 * 16F873A, 16F874A, 16F876A, 16F877A
 * 16F870, 16F871, 16F872, 16F873, 16F874, 16F876, 16F877
-* 16F882, 16F883, 16F884, 16F886, 16F887 (*)
+* 16F882, 16F883, 16F884, 16F886, 16F887 *(2)*
 
-(*): Calibration word and PGM block writes not yet supported in this family of microcontrollers.
+*(1)* User-reported as working.\
+*(2)* Calibration word and PGM block writes not yet supported in this family of microcontrollers.
 
-And can work with all the memory areas from the supported PICs (Program memory, EEPROM, Config words and User IDs).
 
 
 ## LICENSE
