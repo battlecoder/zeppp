@@ -1,6 +1,18 @@
 # ZEPPP CHANGELOG
 
 
+## CLI-VERSION v1.0.4
+
+Released 2022-05-XX
+### NEW
+* Basic support for the **16F88X** family of devices: 16F882, 16F883, 16F884, 16F886, 16F887. No block operations nor access to CAL data yet.
+* Support for the **16F62X** (non-A) family of devices: 16F627, 16F628
+
+### CHANGED
+* The list of supported PICs shown in the CLI when using the -v flag now preserves the order in which they are added in the code, keeping the device names grouped by family.
+
+
+---
 ## CLI-VERSION v1.0.3, FIRMWARE v1.0.1 
 Released 2021-07-17
 

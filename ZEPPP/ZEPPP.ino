@@ -9,8 +9,8 @@
 /* If you add commands or change anything that also requires the CLI to change 
  * please update the version number. That way you can keep the CLI and firmware
  * in sync. Make sure to also update the date string for your releases. */
-#define ZEPPP_VERSION_STRING    "1.0.1"
-#define ZEPPP_RELDATE_STRING    "20200715"
+#define ZEPPP_VERSION_STRING    "1.0.2"
+#define ZEPPP_RELDATE_STRING    "20220824"
 
 #define MAX_SERIAL_IN_BUFFER     PIC_PGM_ROW*5 + 10 
 
@@ -42,7 +42,9 @@ typedef enum {
   RET_ERR_HEX_WORD_EXPECTED,
   RET_ERR_UNKNOWN_COMMAND,
   RET_ERR_NO_MEMORY_AREA_SELECTED,
-} ZEPPP_RET;
+} ZEPPP_RET_ENUM;
+
+#define ZEPPP_RET char
 
 /* Serial Buffer Handling ***********************/
 char serialBuffer[MAX_SERIAL_IN_BUFFER];
@@ -130,6 +132,7 @@ bool serial_parse_getword (word *dest, byte maxDigits) {
     bufferParsingPos += 1;
     digit = hex_digit_val(serialBuffer[bufferParsingPos]);
   }
+  return true;
 }
 
 bool serial_parse_getbyte (byte *dest) {
