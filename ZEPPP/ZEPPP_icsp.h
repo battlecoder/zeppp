@@ -1,6 +1,6 @@
 #ifndef __ZEPPP_ICSP_H
 #define __ZEPPP_ICSP_H
-#include <arduino.h>
+#include <Arduino.h>
 
 /* Pin assignment *******************************/
 const int PGM_PIN  = 9;
