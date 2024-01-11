@@ -2,3 +2,7 @@
 *.md.bak
 *.hex
 *.asm
+ZEPPP/.pio
+ZEPPP/.vscode/**
+ZEPPP/.gitignore
+.vscode/**
