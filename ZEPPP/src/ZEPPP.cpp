@@ -56,6 +56,26 @@ byte bufferParsingPos = 0;
 #define RET_MSG_ERROR       Serial.print(F("ER: "))
 #define RET_MSG_OK          Serial.print(F("OK: "))
 
+/** ###########################################################################
+ *##                                                                        ##
+ *##              @brief LED short API F U N C T I O N S                    ##
+ *##                                                                        ##
+ *############################################################################*/
+inline void led_on() {
+    digitalWrite(LED_BUILTIN, LOW);
+    /* turn the LED on (HIGH is the voltage level) */
+}
+
+inline void led_off() {
+    /* turn the LED off by making the voltage LOW */
+    digitalWrite(LED_BUILTIN, HIGH);
+}
+
+inline void led_setup() {
+    /* initialize digital pin LED_BUILTIN as an output. */
+    pinMode(LED_BUILTIN, OUTPUT);
+    led_off();
+}
 
 /*############################################################################
  *##                                                                        ##
