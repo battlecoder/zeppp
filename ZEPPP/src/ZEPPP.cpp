@@ -210,7 +210,7 @@ ZEPPPCommand getCommand (char *buffer){
 }
 
 ZEPPP_RET execute_serial_cmd() {
-  char ret;
+  char ret = static_cast<char>(RET_OK);
   byte count;
   byte writeSize, eraseMode, writeMode;
   ZEPPPCommand cmdCode = getCommand(serialBuffer);
@@ -243,11 +243,11 @@ ZEPPP_RET execute_serial_cmd() {
 
     // Chip Erase --------
     case ZEPPP_CMD_CHIP_ERASE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED; 
-      if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED; 
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&eraseMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       ret = oper_chip_erase(eraseMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -257,11 +257,11 @@ ZEPPP_RET execute_serial_cmd() {
 
     // PGM Memory Erase --------
     case ZEPPP_CMD_PGM_MEM_ERASE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED; 
-      if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED; 
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&eraseMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       ret = oper_erase_pgm_mem(eraseMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -270,11 +270,11 @@ ZEPPP_RET execute_serial_cmd() {
 
     // DATA Memory Erase --------
     case ZEPPP_CMD_DATA_MEM_ERASE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED; 
-      if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&eraseMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       ret = oper_erase_data_mem(eraseMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -290,8 +290,8 @@ ZEPPP_RET execute_serial_cmd() {
 
     // Increment Address --------
     case ZEPPP_CMD_INCREASE_ADDRESS:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&count)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&count)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       increase_addr_n (count);
       RET_MSG_OK;
       Serial.print(F("Address Pointer increased "));
@@ -301,8 +301,8 @@ ZEPPP_RET execute_serial_cmd() {
 
     // DATA Memory Read --------
     case ZEPPP_CMD_DATA_MEM_READ:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&count)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&count)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
 
       load_data_mem (0xff);
       RET_MSG_OK;
@@ -311,8 +311,8 @@ ZEPPP_RET execute_serial_cmd() {
 
     // PGM Memory Read --------
     case ZEPPP_CMD_PGM_MEM_READ:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&count)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&count)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
 
       load_pgm_mem (0x3fff);
       RET_MSG_OK;
@@ -321,17 +321,17 @@ ZEPPP_RET execute_serial_cmd() {
 
     // PGM Memory Write --------
     case ZEPPP_CMD_PGM_MEM_WRITE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&writeMode)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&writeMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       // So far only two modes are supported for word-based PGM writes: 0 (Use Erase/Pgm cycle) and 1: (Use Program-only cycle)
-      if (writeMode > 1) return RET_ERR_OUT_OF_RANGE; 
+      if (writeMode > 1) { ret = RET_ERR_OUT_OF_RANGE; break; }
 
       ret = read_console_into_word_buffer(&count);
-      if (ret != RET_OK) return ret;
+      if (ret != RET_OK) break;;
 
       ret = oper_write_pgm_mem_from_buffer(count, writeMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -340,17 +340,17 @@ ZEPPP_RET execute_serial_cmd() {
 
     // PGM Memory Block Write --------
     case ZEPPP_CMD_PGM_MEM_BLOCK_WRITE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&writeSize)) return RET_ERR_HEX_BYTE_EXPECTED;
-      if (writeSize < 2 || writeSize > pgm_buffer_size()) return RET_ERR_OUT_OF_RANGE;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&writeSize)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
+      if (writeSize < 2 || writeSize > pgm_buffer_size()) { ret = RET_ERR_OUT_OF_RANGE; break; }
 
       // Negative values are error codes.
       ret = read_console_into_word_buffer(&count);
-      if (ret != RET_OK) return ret;
+      if (ret != RET_OK) break;
 
       ret = oper_write_pgm_block_from_buffer (count, writeSize);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -359,17 +359,17 @@ ZEPPP_RET execute_serial_cmd() {
 
     // DATA Memory Write --------
     case ZEPPP_CMD_DATA_MEM_WRITE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&writeMode)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&writeMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       // So far only two modes are supported for EEPROM  writes: 0 (Use Erase/Pgm cycle) and 1: (Use Program-only cycle with Begin Erase)
-      if (writeMode > 1) return RET_ERR_OUT_OF_RANGE; 
+      if (writeMode > 1) { ret = RET_ERR_OUT_OF_RANGE; break; }
 
       ret = read_console_into_word_buffer(&count);
-      if (ret != RET_OK) return ret;
+      if (ret != RET_OK) break;
 
       ret = oper_write_data_from_buffer(count, writeMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -386,10 +386,11 @@ ZEPPP_RET execute_serial_cmd() {
     break;
 
     default:
-      return RET_ERR_UNKNOWN_COMMAND;
+      ret = RET_ERR_UNKNOWN_COMMAND;
+      break;
   }
 
-  return RET_OK;
+  return ret;
 }
 
 void parse_serial_buff() {
