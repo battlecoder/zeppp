@@ -74,21 +74,6 @@ void serial_write_word (word w) {
 
 /*############################################################################
  *##                                                                        ##
- *##                                 S E T U P                              ##
- *##                                                                        ##
- *############################################################################*/
-void setup() {
-  Serial.begin(115200);   
-  pinMode (MCLR_PIN, OUTPUT);
-  pinMode (PGM_PIN, OUTPUT);
-  pinMode (PGC_PIN, OUTPUT);
-
-  lvp_exit_pgm_mode();
-  serial_reset_buffer();
-}
-
-/*############################################################################
- *##                                                                        ##
  *##             H E X   U T I L I T Y   F U N C T I O N S                  ##
  *##                                                                        ##
  *############################################################################*/
@@ -428,6 +413,21 @@ void parse_serial_buff() {
         Serial.println(ret, DEC);
     }
   }
+  serial_reset_buffer();
+}
+
+/*############################################################################
+ *##                                                                        ##
+ *##                                 S E T U P                              ##
+ *##                                                                        ##
+ *############################################################################*/
+void setup() {
+  Serial.begin(115200);   
+  pinMode (MCLR_PIN, OUTPUT);
+  pinMode (PGM_PIN, OUTPUT);
+  pinMode (PGC_PIN, OUTPUT);
+
+  lvp_exit_pgm_mode();
   serial_reset_buffer();
 }
 
