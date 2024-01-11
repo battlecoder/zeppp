@@ -214,6 +214,7 @@ ZEPPP_RET execute_serial_cmd() {
   byte count;
   byte writeSize, eraseMode, writeMode;
   ZEPPPCommand cmdCode = getCommand(serialBuffer);
+  led_on();
 
   // WARNING ABOUT COMMANDS:
   // In older devices (without an address reset command) the only way to reset the internal counter
@@ -390,6 +391,7 @@ ZEPPP_RET execute_serial_cmd() {
       break;
   }
 
+  led_on();
   return ret;
 }
 
