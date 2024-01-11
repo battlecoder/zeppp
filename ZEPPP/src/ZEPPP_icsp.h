@@ -3,10 +3,22 @@
 #include <Arduino.h>
 
 /* Pin assignment *******************************/
-const int PGM_PIN  = 9;
-const int PGC_PIN  = 8;
-const int PGD_PIN  = 7;
-const int MCLR_PIN = 6;
+#ifndef PGM_PIN
+#define PGM_PIN (9)
+#endif
+
+#ifndef PGC_PIN
+#define PGC_PIN (8)
+#endif
+
+#ifndef PGD_PIN
+#define PGD_PIN (7)
+#endif
+
+#ifndef MCLR_PIN
+#define MCLR_PIN (6)
+#endif
+
 
 /* Timing and constants *************************/
 #define DELAY_HALFCLOCK_IN_US    2
