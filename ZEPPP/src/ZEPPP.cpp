@@ -6,12 +6,19 @@
  *##                                  C O N F I G                           ##
  *##                                                                        ##
  *############################################################################*/
+#ifndef ZEPPP_NAME_STRING
 #define ZEPPP_NAME_STRING       "ZEPPP"
+#endif
 /* If you add commands or change anything that also requires the CLI to change 
  * please update the version number. That way you can keep the CLI and firmware
  * in sync. Make sure to also update the date string for your releases. */
+#ifndef ZEPPP_VERSION_STRING
 #define ZEPPP_VERSION_STRING    "1.0.2"
+#endif
+
+#ifndef ZEPPP_RELDATE_STRING
 #define ZEPPP_RELDATE_STRING    "20220824"
+#endif
 
 #define MAX_SERIAL_IN_BUFFER     PIC_PGM_ROW*5 + 10 
 
