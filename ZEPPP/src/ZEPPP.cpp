@@ -20,6 +20,10 @@
 #define ZEPPP_RELDATE_STRING    "20220824"
 #endif
 
+#ifndef LED_PIN
+#define LED_PIN LED_BUILTIN
+#endif
+
 #define MAX_SERIAL_IN_BUFFER     PIC_PGM_ROW*5 + 10 
 
 /* Serial Commands ******************************/
@@ -69,18 +73,18 @@ byte bufferParsingPos = 0;
  *##                                                                        ##
  *############################################################################*/
 inline void led_on() {
-    digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(LED_PIN, LOW);
     /* turn the LED on (HIGH is the voltage level) */
 }
 
 inline void led_off() {
     /* turn the LED off by making the voltage LOW */
-    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_PIN, HIGH);
 }
 
 inline void led_setup() {
-    /* initialize digital pin LED_BUILTIN as an output. */
-    pinMode(LED_BUILTIN, OUTPUT);
+    /* initialize digital pin LED_PIN as an output. */
+    pinMode(LED_PIN, OUTPUT);
     led_off();
 }
 
