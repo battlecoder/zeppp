@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "ZEPPP_icsp.h"
 
 /*############################################################################
@@ -5,12 +6,23 @@
  *##                                  C O N F I G                           ##
  *##                                                                        ##
  *############################################################################*/
+#ifndef ZEPPP_NAME_STRING
 #define ZEPPP_NAME_STRING       "ZEPPP"
+#endif
 /* If you add commands or change anything that also requires the CLI to change 
  * please update the version number. That way you can keep the CLI and firmware
  * in sync. Make sure to also update the date string for your releases. */
+#ifndef ZEPPP_VERSION_STRING
 #define ZEPPP_VERSION_STRING    "1.0.2"
+#endif
+
+#ifndef ZEPPP_RELDATE_STRING
 #define ZEPPP_RELDATE_STRING    "20220824"
+#endif
+
+#ifndef LED_PIN
+#define LED_PIN LED_BUILTIN
+#endif
 
 #define MAX_SERIAL_IN_BUFFER     PIC_PGM_ROW*5 + 10 
 
@@ -55,6 +67,26 @@ byte bufferParsingPos = 0;
 #define RET_MSG_ERROR       Serial.print(F("ER: "))
 #define RET_MSG_OK          Serial.print(F("OK: "))
 
+/** ###########################################################################
+ *##                                                                        ##
+ *##              @brief LED short API F U N C T I O N S                    ##
+ *##                                                                        ##
+ *############################################################################*/
+inline void led_on() {
+    digitalWrite(LED_PIN, LOW);
+    /* turn the LED on (HIGH is the voltage level) */
+}
+
+inline void led_off() {
+    /* turn the LED off by making the voltage LOW */
+    digitalWrite(LED_PIN, HIGH);
+}
+
+inline void led_setup() {
+    /* initialize digital pin LED_PIN as an output. */
+    pinMode(LED_PIN, OUTPUT);
+    led_off();
+}
 
 /*############################################################################
  *##                                                                        ##
@@ -69,21 +101,6 @@ void serial_write_byte (byte b) {
 void serial_write_word (word w) {
   serial_write_byte (w >> 8);
   serial_write_byte (w & 0xff);
-}
-
-/*############################################################################
- *##                                                                        ##
- *##                                 S E T U P                              ##
- *##                                                                        ##
- *############################################################################*/
-void setup() {
-  Serial.begin(115200);   
-  pinMode (MCLR_PIN, OUTPUT);
-  pinMode (PGM_PIN, OUTPUT);
-  pinMode (PGC_PIN, OUTPUT);
-
-  lvp_exit_pgm_mode();
-  serial_reset_buffer();
 }
 
 /*############################################################################
@@ -204,10 +221,11 @@ ZEPPPCommand getCommand (char *buffer){
 }
 
 ZEPPP_RET execute_serial_cmd() {
-  char ret;
+  char ret = static_cast<char>(RET_OK);
   byte count;
   byte writeSize, eraseMode, writeMode;
   ZEPPPCommand cmdCode = getCommand(serialBuffer);
+  led_on();
 
   // WARNING ABOUT COMMANDS:
   // In older devices (without an address reset command) the only way to reset the internal counter
@@ -237,11 +255,11 @@ ZEPPP_RET execute_serial_cmd() {
 
     // Chip Erase --------
     case ZEPPP_CMD_CHIP_ERASE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED; 
-      if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED; 
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&eraseMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       ret = oper_chip_erase(eraseMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -251,11 +269,11 @@ ZEPPP_RET execute_serial_cmd() {
 
     // PGM Memory Erase --------
     case ZEPPP_CMD_PGM_MEM_ERASE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED; 
-      if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED; 
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&eraseMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       ret = oper_erase_pgm_mem(eraseMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -264,11 +282,11 @@ ZEPPP_RET execute_serial_cmd() {
 
     // DATA Memory Erase --------
     case ZEPPP_CMD_DATA_MEM_ERASE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED; 
-      if (!serial_parse_getbyte(&eraseMode)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&eraseMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       ret = oper_erase_data_mem(eraseMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -284,8 +302,8 @@ ZEPPP_RET execute_serial_cmd() {
 
     // Increment Address --------
     case ZEPPP_CMD_INCREASE_ADDRESS:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&count)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&count)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       increase_addr_n (count);
       RET_MSG_OK;
       Serial.print(F("Address Pointer increased "));
@@ -295,8 +313,8 @@ ZEPPP_RET execute_serial_cmd() {
 
     // DATA Memory Read --------
     case ZEPPP_CMD_DATA_MEM_READ:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&count)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&count)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
 
       load_data_mem (0xff);
       RET_MSG_OK;
@@ -305,8 +323,8 @@ ZEPPP_RET execute_serial_cmd() {
 
     // PGM Memory Read --------
     case ZEPPP_CMD_PGM_MEM_READ:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&count)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&count)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
 
       load_pgm_mem (0x3fff);
       RET_MSG_OK;
@@ -315,17 +333,17 @@ ZEPPP_RET execute_serial_cmd() {
 
     // PGM Memory Write --------
     case ZEPPP_CMD_PGM_MEM_WRITE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&writeMode)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&writeMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       // So far only two modes are supported for word-based PGM writes: 0 (Use Erase/Pgm cycle) and 1: (Use Program-only cycle)
-      if (writeMode > 1) return RET_ERR_OUT_OF_RANGE; 
+      if (writeMode > 1) { ret = RET_ERR_OUT_OF_RANGE; break; }
 
       ret = read_console_into_word_buffer(&count);
-      if (ret != RET_OK) return ret;
+      if (ret != RET_OK) break;;
 
       ret = oper_write_pgm_mem_from_buffer(count, writeMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -334,17 +352,17 @@ ZEPPP_RET execute_serial_cmd() {
 
     // PGM Memory Block Write --------
     case ZEPPP_CMD_PGM_MEM_BLOCK_WRITE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&writeSize)) return RET_ERR_HEX_BYTE_EXPECTED;
-      if (writeSize < 2 || writeSize > pgm_buffer_size()) return RET_ERR_OUT_OF_RANGE;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&writeSize)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
+      if (writeSize < 2 || writeSize > pgm_buffer_size()) { ret = RET_ERR_OUT_OF_RANGE; break; }
 
       // Negative values are error codes.
       ret = read_console_into_word_buffer(&count);
-      if (ret != RET_OK) return ret;
+      if (ret != RET_OK) break;
 
       ret = oper_write_pgm_block_from_buffer (count, writeSize);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -353,17 +371,17 @@ ZEPPP_RET execute_serial_cmd() {
 
     // DATA Memory Write --------
     case ZEPPP_CMD_DATA_MEM_WRITE:
-      if (!serial_parse_match(' ')) return RET_ERR_SPACE_EXPECTED;
-      if (!serial_parse_getbyte(&writeMode)) return RET_ERR_HEX_BYTE_EXPECTED;
+      if (!serial_parse_match(' ')) { ret = RET_ERR_SPACE_EXPECTED; break; }
+      if (!serial_parse_getbyte(&writeMode)) { ret = RET_ERR_HEX_BYTE_EXPECTED; break; }
       // So far only two modes are supported for EEPROM  writes: 0 (Use Erase/Pgm cycle) and 1: (Use Program-only cycle with Begin Erase)
-      if (writeMode > 1) return RET_ERR_OUT_OF_RANGE; 
+      if (writeMode > 1) { ret = RET_ERR_OUT_OF_RANGE; break; }
 
       ret = read_console_into_word_buffer(&count);
-      if (ret != RET_OK) return ret;
+      if (ret != RET_OK) break;
 
       ret = oper_write_data_from_buffer(count, writeMode);
       if (ret != RET_OK) {
-        return ret;
+        break;
       } else {
         RET_MSG_OK;
       }
@@ -380,10 +398,12 @@ ZEPPP_RET execute_serial_cmd() {
     break;
 
     default:
-      return RET_ERR_UNKNOWN_COMMAND;
+      ret = RET_ERR_UNKNOWN_COMMAND;
+      break;
   }
 
-  return RET_OK;
+  led_on();
+  return ret;
 }
 
 void parse_serial_buff() {
@@ -427,6 +447,21 @@ void parse_serial_buff() {
         Serial.println(ret, DEC);
     }
   }
+  serial_reset_buffer();
+}
+
+/*############################################################################
+ *##                                                                        ##
+ *##                                 S E T U P                              ##
+ *##                                                                        ##
+ *############################################################################*/
+void setup() {
+  Serial.begin(115200);   
+  pinMode (MCLR_PIN, OUTPUT);
+  pinMode (PGM_PIN, OUTPUT);
+  pinMode (PGC_PIN, OUTPUT);
+
+  lvp_exit_pgm_mode();
   serial_reset_buffer();
 }
 
