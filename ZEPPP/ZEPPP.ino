@@ -44,7 +44,8 @@ typedef enum {
   RET_ERR_NO_MEMORY_AREA_SELECTED,
 } ZEPPP_RET_ENUM;
 
-#define ZEPPP_RET char
+//#define ZEPPP_RET char
+typedef char ZEPPP_RET;
 
 /* Serial Buffer Handling ***********************/
 char serialBuffer[MAX_SERIAL_IN_BUFFER];

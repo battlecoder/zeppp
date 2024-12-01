@@ -22,7 +22,7 @@ The following things were added:
 * **-ignore-bounds-error** flag to force ZEPPP to work with HEX files that contain data outside the selected PIC's memory range.
 
 The "-ignore-bounds-error" was added because of reports of one specific compiler generating HEX files that were mostly fine, except for a few bytes of automatically added data outside of PIC memory range.
-The default behavior of ZEPPP is still to stop execution with an error on such cases, but this flag can be used to turn the error in just a warning, allowing ZEPPP to continue the process, discarding whatever data was outside range.
+The default behavior of ZEPPP is still to stop execution with an error on such cases, but this flag can be used to turn the error into just a warning, allowing ZEPPP to continue the process, discarding whatever data was outside the range.
 
 ### CHANGED
 Big changes were done to how verification is performed.

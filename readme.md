@@ -2,7 +2,7 @@
 
 **ZEPPP** is a PIC programmer that requires only an Arduino-compatible board and a small command-line PC utility (CLI) to read, write, erase and verify several LVP-capable PIC microcontrollers via ICSP (In-Circuit Serial Programming).
 
-The name of this project is a homage to the first PIC programmer I used: **James Padfield**'s "Enhanced NOPPP", a modified version of the classic **NOPPP** (No-Parts PIC Programmer) originally designed by **Michael Covington**. I built mine in the early 2000's and was the tool I used to program PICs for quite a while.
+The name of this project is a homage to the first PIC programmer I used: **James Padfield**'s "Enhanced NOPPP" (NOPPP3), a modified version of the classic **NOPPP** (No-Parts PIC Programmer) originally designed by **Michael Covington**. I built mine in the early 2000's and it was the tool I used to program PICs for quite a while.
 
 Currently ZEPPP supports the following PIC devices, being able to program PGM, CONFIG, and EEPROM areas:
 
@@ -23,16 +23,16 @@ Both the firmware and the Command-Line utility are licensed under the MIT Licens
 Check **LICENSE.txt** for details.
 
 ## FIRMWARE
-The firmware should work on **Arduino Nano**, **Pro Mini**, and **Uno** boards, including compatible designs using the **Atmega328P** processor.
+The firmware should work on **Arduino Nano**, **Pro Mini**, and **Uno** boards, including compatible designs using the **Atmega328P** processor, although it should work with other boards supported by the Arduino programming environment as long as they operate at 5V.
 
 You'll find the Arduino Sketch (*ZEPPP.ino*) in the **/ZEPPP** folder of this repository.
 
 Strictly speaking you can use the Arduino on its own to program your PICs without the command line utility, provided you don't mind sending the programming commands one by one by hand through a serial terminal (quite unpractical but can be done). A short document describing the serial commands implemented on the firmware can be found in **fw_commands.txt**.
 
 ## CONNECTING A PIC
-Since this is a ICSP programmer you need to connect your Arduino (with the ZEPPP firmware) to your PIC using the ICSP pins (PGM, PGC, PGD, MCLR). On the Arduino side, those signals are mapped to digital pins 6 to 9. The exact mapping can be found at the top of the ZEPPP sketch in a section called "Pin assignment". You'll also need to connect the GND pin of your PIC to your Arduino's GND.
+Since this is a **ICSP** programmer you need to connect your Arduino (with the ZEPPP firmware) to your PIC using the **ICSP** pins (PGM, PGC, PGD, MCLR). On the Arduino side, those signals are mapped to digital pins 6 to 9. The exact mapping can be found at the top of the ZEPPP sketch in a section called "Pin assignment". You'll also need to connect the GND pin of your PIC to your Arduino's GND.
 
-Unless you are targetting a PIC board with an already mounted ICSP header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal. The following table shows the pins that should be connected depending on the PIC device family, with the current version of the firmware:
+Unless you are targetting a PIC board with an already mounted **ICSP** header, you'll also need to check the pinout of your target PIC to know the pin number associated to each signal. The following table shows the pins that should be connected depending on the PIC device family, with the current version of the firmware:
 
 | Arduino | ICSP Signal | PIC 16F6xx   | PIC 16F87/88 | PIC 16F87x(A)| PIC 16F88X   |
 | ------- | ----------- | ------------ | ------------ | ------------ | ------------ |
@@ -44,10 +44,10 @@ Unless you are targetting a PIC board with an already mounted ICSP header, you'l
 
 ---
 > **_NOTE:_** 
-Your target PIC also needs to be connected to power (Its VDD pin/s must be getting their operational voltage, which is most likely going to be 5V). You can get away with using your Arduino's 5V pin for that if the PIC you want to program is not connected to anything else.
+Your target PIC also needs to be connected to power (VDD pin/s must be getting their operational voltage, which is most likely 5V) and ground. You can get away with using your Arduino's 5V pin for that, only **if** the PIC you want to program is not connected to anything that would draw too much current.
 ---
 
-As briefly mentioned before, if your target board has a proper ICSP connector, you would need connect the Arduino pins to the corresponding signals on the ICSP header, but bear in mind that if the ICSP connector on your board does not support Low-Voltage Programming (LVP), it will most likely lack the "PGM" signal, and you won't be able to use this programmer.
+As briefly mentioned before, if your target board has a proper **ICSP** connector, you could connect the Arduino pins directly to it, but bear in mind that if the **ICSP** connector on your board does not support Low-Voltage Programming (LVP), it will most likely lack the "PGM" signal, and you will need a way of reaching that pin of your PIC by other means.
 
 
 ## COMMAND-LINE UTILITY
@@ -68,11 +68,11 @@ Nothing too exciting. It basically does the "java -jar zeppp-cli.jar" part for y
 
 ## USING THE CLI
 
-You can run the CLI without parameters to see the available options. All the operations that you perform will be done in the order they appear in the command line, so you can chain multiple operations together.
+You can run the CLI without parameters to see the available options. **All the operations that you specify will be performed in the order they appear in the command line**, so you can chain multiple operations together with full control over the order of operations.
 Here are some examples of what you can do with it:
 
 ---
-> **_NOTE:_**  Most Arduino variants equipped with a USB-Serial driver IC for programming (Arduino Uno, Nano, etc) need the **-wait** parameter with at least a delay of 2 seconds after the COM port is selected. This is because they reset the microcontroller when a connection is eastablished, and ZEPPP-CLI will need to wait before attempting to communicate with the firmware. The [Arduino Pro Mini](https://www.arduino.cc/en/pmwiki.php?n=Main/ArduinoBoardProMini) (The one **without** an on-board USB Serial IC, that needs to be manually reset with push-button when programmed) is the only Arduino I've tested so far that doesn't need this, because it doesn't auto-reset on serial connections.
+> **_NOTE:_**  Most Arduino variants equipped with a USB-Serial driver IC for programming (Arduino Uno, Nano, etc) need the **-wait** parameter with at least a delay of 2 seconds after the COM port is selected. This is because they reset the microcontroller when a connection is established, and ZEPPP-CLI will need to wait before attempting to communicate with the firmware. The [Arduino Pro Mini](https://www.arduino.cc/en/pmwiki.php?n=Main/ArduinoBoardProMini) (The one **without** an on-board USB Serial IC, that needs to be manually reset with push-button when programmed) is the only Arduino I've tested so far that doesn't need this, because it doesn't auto-reset on serial connections.
 You may need to add or remove the **-wait** flag from the following examples depending on the Arduino board you are using.
 ---
 
@@ -118,5 +118,5 @@ The JAR will be copied to the root directory of the project automatically once i
 ## CLOSING WORDS
 Feedback is always appreciated and if you decide to give this "programmer" a try let me know!
 
-I originally posted about this project on my [blog](http://blog.damnsoft.org), so there's a chance that you'll find more related projects there in a future.
+I originally posted about this project on my [blog](https://bitofmystery.com), so there's a chance that you'll find more related projects there in a future.
 
